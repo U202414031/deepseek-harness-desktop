@@ -50,7 +50,10 @@ export function applyAdvancedShell(ctx: ClientContext, environment: DesktopClien
   }, 'desktop: theme presenter')
 
   // Restore the user's previously selected skin on every advanced-shell boot.
-  ctx.effect(() => { applySkin(getSkin()) }, 'desktop: skin restore')
+  ctx.effect(() => {
+    applySkin(getSkin())
+    return () => {}
+  }, 'desktop: skin restore')
 
   ctx.effect(() => ctx.slots.register({
     name: 'root',

@@ -67,7 +67,7 @@ export async function fetchGithubPlugins(signal?: AbortSignal): Promise<Marketpl
     const url = `https://api.github.com/search/repositories?q=${encodeURIComponent(query)}&sort=stars&order=desc&per_page=30`
     try {
       const response = await fetch(url, {
-        signal,
+        signal: signal ?? null,
         headers: { accept: 'application/vnd.github+json' },
       })
       if (!response.ok) continue
@@ -79,7 +79,7 @@ export async function fetchGithubPlugins(signal?: AbortSignal): Promise<Marketpl
           id,
           name: repo.name,
           description: repo.description ?? 'DeepSeek Harness 相关插件。',
-          author: repo.owner?.login,
+          author: repo.owner?.login ?? 'unknown',
           repository: repo.html_url,
           installSpec: `github:${repo.full_name}`,
           tags: repo.topics ?? [],

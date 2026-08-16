@@ -22,7 +22,7 @@ interface Extracted {
 
 /** Desktop-owned artifacts/code panel rendered in the right column. */
 export function ArtifactsPanel({ useSession }: PropsRuntime<'artifacts'>): JSX.Element {
-  const snapshot = useSession()
+  const snapshot = useSession((s) => s)
   const extracted = useMemo(() => extractArtifacts(snapshot), [snapshot])
   const [tab, setTab] = useState<'code' | 'artifacts'>('code')
 
