@@ -149,7 +149,7 @@ export function apply(ctx: Context, config: Config): void {
       ...config,
       url: desktopRendererUrl(ctx.webServer.port, config.mode, ctx.desktopRuntime.platform),
       productName: 'DSH Desktop',
-      windowTitle: 'DeepSeek Harness Desktop',
+      windowTitle: 'DeepSeek Harness Desktop · DEV',
       iconPath,
       trayIcons,
       readThemeSource: () => {

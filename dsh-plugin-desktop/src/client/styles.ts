@@ -82,6 +82,7 @@ html:has([aria-modal="true"]) .dshDesktopSidebarSurface::before { -webkit-app-re
 .dshDesktopRailButton:hover { background: var(--dsh-desktop-surface-2); color: var(--dsh-desktop-fg); }
 .dshDesktopRailButton[data-active] { background: var(--dsh-desktop-accent); color: var(--dsh-desktop-accent-fg); border-color: var(--dsh-desktop-accent); }
 .dshDesktopRailDivider { width: 28px; height: 1px; margin: 4px auto; background: var(--dsh-desktop-border); opacity: 0.6; }
+.dshDesktopRailFooter { margin-top: auto; padding: 4px 2px; font-size: 9px; line-height: 1.2; color: var(--dsh-desktop-fg-muted); opacity: 0.7; text-align: center; user-select: none; }
 .dshDesktopSidebarPanel { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--dsh-desktop-bg); }
 .dshDesktopUpstreamSidebar { box-sizing: border-box; width: 100%; height: 100%; overflow-x: hidden; }
 

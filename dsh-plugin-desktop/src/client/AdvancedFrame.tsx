@@ -119,6 +119,7 @@ export function AdvancedFrame({ layout, platform, renderSlot, useSessions }: Adv
           >
             {collapsed ? '»' : '«'}
           </button>
+          <div className="dshDesktopRailFooter" title="build marker">DSH · DEV d007d7d</div>
         </nav>
         <div className="dshDesktopSidebarPanel">
           {panels.leftPanel === 'chat' && (
