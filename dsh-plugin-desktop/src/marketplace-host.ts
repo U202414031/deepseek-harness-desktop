@@ -24,9 +24,6 @@ const MODE_COMMAND: Record<MarketplaceMode, 'add' | 'remove' | 'update'> = {
   update: 'update',
 }
 
-/** Hard ceiling for a single install operation (ten minutes). */
-const OPERATION_TIMEOUT_MS = 10 * 60_000
-
 /** Register the marketplace install/uninstall/update routes. @returns disposer removing all three. */
 export function installMarketplaceRoutes(ctx: Context): () => void {
   const disposers = [
