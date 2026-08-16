@@ -17,7 +17,7 @@ export interface AdvancedFrameInjected {
 
 /** Full advanced root slot props. */
 export type AdvancedFrameProps = PropsRuntime<'root'>
-  & PropsRenderSlots<'sidebar' | 'conversation' | 'details' | 'sidebar.marketplace' | 'sidebar.skins' | 'artifacts' | 'shell.overlay'>
+  & PropsRenderSlots<'sidebar' | 'conversation' | 'details' | 'sidebar.marketplace' | 'sidebar.skins' | 'sidebar.api' | 'artifacts' | 'shell.overlay'>
   & AdvancedFrameInjected
 
 /** Desktop-owned transparent frame around the unchanged product surfaces. */
@@ -110,6 +110,17 @@ export function AdvancedFrame({ layout, platform, renderSlot, useSessions }: Adv
           >
             皮肤
           </button>
+          <button
+            type="button"
+            className="dshDesktopRailButton"
+            data-active={panels.leftPanel === 'api' || undefined}
+            title="API 设置"
+            aria-label="API 设置"
+            aria-pressed={panels.leftPanel === 'api'}
+            onClick={() => { layout.setLeftPanel('api') }}
+          >
+            API
+          </button>
           <div className="dshDesktopRailDivider" aria-hidden="true" />
           <button
             type="button"
@@ -130,6 +141,7 @@ export function AdvancedFrame({ layout, platform, renderSlot, useSessions }: Adv
           )}
           {panels.leftPanel === 'marketplace' && renderSlot('sidebar.marketplace', {})}
           {panels.leftPanel === 'skins' && renderSlot('sidebar.skins', {})}
+          {panels.leftPanel === 'api' && renderSlot('sidebar.api', {})}
         </div>
       </aside>
       <main className="dshDesktopConversationSurface">{renderSlot('conversation', {})}</main>

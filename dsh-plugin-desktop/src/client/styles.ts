@@ -265,6 +265,27 @@ html:has([aria-modal="true"]) .dshDesktopSidebarSurface::before { -webkit-app-re
 .dshDesktopArtifactsTab { font-size: 12px; padding: 6px 12px; border: 1px solid var(--dsh-desktop-border); border-radius: 999px; background: var(--dsh-desktop-surface); color: var(--dsh-desktop-fg-muted); cursor: pointer; -webkit-app-region: no-drag; }
 .dshDesktopArtifactsTab[aria-selected="true"] { background: var(--dsh-desktop-accent); color: var(--dsh-desktop-accent-fg); border-color: var(--dsh-desktop-accent); }
 .dshDesktopArtifactsBody { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 10px 12px; }
+
+/* ---- API settings (left panel) ---- */
+.dshDesktopApiSettings { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 12px; padding: 14px 16px; overflow-y: auto; }
+.dshDesktopApiActions { display: flex; gap: 8px; }
+.dshDesktopApiStatus { font-size: 12px; color: var(--dsh-desktop-accent); margin: 0; }
+.dshDesktopApiQuery { align-self: flex-start; }
+.dshDesktopBalanceList { display: flex; flex-direction: column; gap: 10px; }
+.dshDesktopBalanceCard { border: 1px solid var(--dsh-desktop-border); border-radius: 10px; padding: 10px 12px; background: var(--dsh-desktop-surface); display: flex; flex-direction: column; gap: 6px; }
+.dshDesktopBalanceRow { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; }
+.dshDesktopBalanceRow span { color: var(--dsh-desktop-fg-muted); }
+.dshDesktopBalanceRow b { color: var(--dsh-desktop-fg); font-weight: 600; }
+
+/* ---- Usage tab (right panel) ---- */
+.dshDesktopUsageWrap { display: flex; flex-direction: column; gap: 10px; }
+.dshDesktopUsageTotal { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border: 1px solid var(--dsh-desktop-border); border-radius: 10px; background: var(--dsh-desktop-surface); font-size: 12px; color: var(--dsh-desktop-fg-muted); }
+.dshDesktopUsageTotal b { color: var(--dsh-desktop-fg); font-size: 13px; }
+.dshDesktopUsageList { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.dshDesktopUsageRow { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border: 1px solid var(--dsh-desktop-border); border-radius: 10px; background: var(--dsh-desktop-surface); }
+.dshDesktopUsageTurn { font-size: 13px; font-weight: 600; color: var(--dsh-desktop-fg); }
+.dshDesktopUsageNumbers { font-size: 12px; color: var(--dsh-desktop-fg-muted); }
+.dshDesktopUsageCache, .dshDesktopUsagePrice { font-size: 11px; color: var(--dsh-desktop-accent); }
 .dshDesktopArtifactsHeader { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .dshDesktopArtifactsHeader__buttons { display: flex; align-items: center; gap: 2px; margin-left: auto; }
 .dshDesktopIconButton { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--dsh-desktop-fg-muted); cursor: pointer; -webkit-app-region: no-drag; }
