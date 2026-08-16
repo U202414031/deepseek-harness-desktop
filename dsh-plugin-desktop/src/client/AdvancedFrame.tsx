@@ -62,6 +62,7 @@ export function AdvancedFrame({ layout, platform, renderSlot, useSessions }: Adv
     detailsSession === undefined ? 0 : panels.details,
     platform === 'darwin' ? MACOS_SIDEBAR_COLLAPSED : SIDEBAR_COLLAPSED,
     panels.artifacts,
+    panels.artifactsExpanded,
   )
 
   return (
@@ -203,7 +204,7 @@ export function AdvancedFrame({ layout, platform, renderSlot, useSessions }: Adv
           onResize={(width) => { layout.setDetails(width) }}
         />
       )}
-      {columns.artifacts > ARTIFACTS_RAIL && (
+      {columns.artifacts > ARTIFACTS_RAIL && !panels.artifactsExpanded && (
         <ResizeHandle
           side="artifacts"
           left={viewport - columns.artifacts}

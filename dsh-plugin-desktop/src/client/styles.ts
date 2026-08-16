@@ -29,7 +29,7 @@ body[data-dsh-desktop-mode="advanced"] { margin: 0; background: transparent !imp
 .dshDesktopFrame[data-desktop-platform="win32"] .dshDesktopSidebarSurface { grid-row: 1 / -1; }
 .dshDesktopFrame[data-desktop-platform="win32"] .dshDesktopConversationSurface,
 .dshDesktopFrame[data-desktop-platform="win32"] .dshDesktopDetailsSurface { grid-row: 2; }
-.dshDesktopFrame[data-desktop-platform="win32"] .dshDesktopArtifactsSurface { grid-row: 1 / -1; }
+.dshDesktopFrame[data-desktop-platform="win32"] .dshDesktopArtifactsSurface { grid-row: 2; }
 .dshDesktopWindowsCaptionRow { position: relative; grid-column: 2 / -1; grid-row: 1; min-width: 0; background: var(--dsw-alias-bg-base); }
 .dshDesktopWindowsCaptionRow::before { content: ""; position: absolute; inset: 0 ${WINDOWS_CAPTION_CONTROLS_WIDTH}px 0 0; user-select: none; -webkit-app-region: drag; }
 .dshDesktopFrame[data-sidebar-collapsed] { transition: grid-template-columns var(--ds-transition-duration-slow) var(--ds-ease-in-out); }

@@ -65,6 +65,7 @@ export function computeDesktopColumns(
   details: number,
   collapsedWidth: number = SIDEBAR_COLLAPSED,
   artifacts: number = 0,
+  artifactsExpanded: boolean = false,
 ): DesktopColumns {
   const sidebarWidth = sidebar === 0 ? collapsedWidth : clamp(sidebar, SIDEBAR_MIN, SIDEBAR_MAX)
   const preferredDetails = details === 0 ? 0 : clamp(details, DETAILS_MIN, DETAILS_MAX)
@@ -73,6 +74,18 @@ export function computeDesktopColumns(
   // mirroring the left sidebar's persistent collapsed rail. A closed panel shows
   // only the rail; an open panel shows its content.
   const preferredArtifacts = artifactsOpen ? clamp(artifacts, ARTIFACTS_MIN, ARTIFACTS_MAX) : ARTIFACTS_RAIL
+  // Enlarged state: let the right panel take the whole window (minus the left
+  // sidebar and the optional details column), collapsing the conversation to a
+  // sliver — matching WorkBuddy's maximize action for the right sidebar.
+  if (artifactsOpen && artifactsExpanded) {
+    const expanded = Math.max(ARTIFACTS_MIN, viewport - sidebarWidth - preferredDetails)
+    return {
+      sidebar: sidebarWidth,
+      center: Math.max(0, viewport - sidebarWidth - preferredDetails - expanded),
+      details: preferredDetails,
+      artifacts: expanded,
+    }
+  }
   // Fits with the requested artifacts width: render the right docked panel.
   if (sidebarWidth + preferredDetails + preferredArtifacts + CENTER_MIN <= viewport) {
     return {
@@ -171,14 +184,11 @@ export class DesktopLayoutState {
     else this.closeArtifacts()
   }
 
-  /** Toggle the artifacts/code panel between its default and enlarged width. */
+  /** Toggle the artifacts/code panel between its docked and full-window widths. */
   toggleArtifactsExpanded(): void {
-    const expanded = !this.snapshot.artifactsExpanded
-    const base = this.snapshot.artifacts === 0 ? ARTIFACTS_DEFAULT : this.snapshot.artifacts
     this.publish({
       ...this.snapshot,
-      artifactsExpanded: expanded,
-      artifacts: expanded ? ARTIFACTS_MAX : Math.min(base, ARTIFACTS_DEFAULT),
+      artifactsExpanded: !this.snapshot.artifactsExpanded,
     })
   }
 
