@@ -108,6 +108,17 @@ export function AdvancedFrame({ layout, platform, renderSlot, useSessions }: Adv
           >
             皮肤
           </button>
+          <div className="dshDesktopRailDivider" aria-hidden="true" />
+          <button
+            type="button"
+            className="dshDesktopRailButton"
+            title={collapsed ? '展开侧边栏' : '收起侧边栏'}
+            aria-label={collapsed ? '展开侧边栏' : '收起侧边栏'}
+            aria-pressed={collapsed}
+            onClick={() => { layout.toggleSidebar() }}
+          >
+            {collapsed ? '»' : '«'}
+          </button>
         </nav>
         <div className="dshDesktopSidebarPanel">
           {panels.leftPanel === 'chat' && (

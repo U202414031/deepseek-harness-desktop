@@ -58,17 +58,19 @@ html:has([aria-modal="true"]) .dshDesktopSidebarSurface::before { -webkit-app-re
 
 /* ---- Whole-interface skinning: when a skin is active, force every desktop
    surface (sidebar, conversation, details, artifacts, caption bars) to adopt the
-   skin tokens, and let the upstream chat content reveal the skinned backdrop. ---- */
+   skin tokens, and let the upstream chat content reveal the skinned backdrop.
+   We deliberately bind to the desktop-owned --dsh-desktop-* tokens (which every
+   skin defines) rather than the upstream --dsw-alias-* names so the change is
+   always visible. ---- */
 :root[data-skin] .dshDesktopSidebarSurface,
-:root[data-skin] .dshDesktopSidebarRail,
-:root[data-skin] .dshDesktopSidebarPanel,
 :root[data-skin] .dshDesktopConversationSurface,
 :root[data-skin] .dshDesktopDetailsSurface,
 :root[data-skin] .dshDesktopArtifactsSurface,
 :root[data-skin] .dshDesktopMacCaptionRow,
-:root[data-skin] .dshDesktopWindowsCaptionRow { background: var(--dsw-alias-bg-base); color: var(--dsw-alias-fg-base); }
+:root[data-skin] .dshDesktopWindowsCaptionRow { background: var(--dsh-desktop-bg); color: var(--dsh-desktop-fg); border-color: var(--dsh-desktop-border); }
 :root[data-skin] .dshDesktopSidebarRail { background: var(--dsh-desktop-surface); }
-:root[data-skin] .dshDesktopSidebarPanel { background: var(--dsh-desktop-bg); }
+:root[data-skin] .dshDesktopSidebarPanel { background: var(--dsh-desktop-surface); }
+:root[data-skin] .dshDesktopArtifactsSurface { background: var(--dsh-desktop-surface); }
 :root[data-skin] .dshDesktopFrame { background: transparent; }
 /* Reveal the skinned conversation backdrop through the upstream chat content. */
 :root[data-skin] .dshDesktopConversationSurface > * { background-color: transparent !important; }
@@ -79,6 +81,7 @@ html:has([aria-modal="true"]) .dshDesktopSidebarSurface::before { -webkit-app-re
 .dshDesktopRailButton { width: 44px; min-height: 44px; padding: 4px; border: 1px solid transparent; border-radius: 10px; background: transparent; color: var(--dsh-desktop-fg-muted); font-size: 12px; line-height: 1.2; cursor: pointer; -webkit-app-region: no-drag; }
 .dshDesktopRailButton:hover { background: var(--dsh-desktop-surface-2); color: var(--dsh-desktop-fg); }
 .dshDesktopRailButton[data-active] { background: var(--dsh-desktop-accent); color: var(--dsh-desktop-accent-fg); border-color: var(--dsh-desktop-accent); }
+.dshDesktopRailDivider { width: 28px; height: 1px; margin: 4px auto; background: var(--dsh-desktop-border); opacity: 0.6; }
 .dshDesktopSidebarPanel { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--dsh-desktop-bg); }
 .dshDesktopUpstreamSidebar { box-sizing: border-box; width: 100%; height: 100%; overflow-x: hidden; }
 
