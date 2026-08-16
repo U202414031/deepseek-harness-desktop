@@ -3,6 +3,7 @@ import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
 import { provideDesktopLayout } from '../src/client/layout-service.ts'
 import { parseDesktopClientEnvironment } from '../src/client/environment.ts'
 import {
+  ARTIFACTS_DEFAULT,
   computeDesktopColumns, DesktopLayoutState, MACOS_SIDEBAR_COLLAPSED, SIDEBAR_COLLAPSED,
 } from '../src/client/layout-state.ts'
 import { installAdvancedStyles } from '../src/client/styles.ts'
@@ -117,9 +118,9 @@ describe('advanced desktop layout', () => {
     layout.openDetails()
     layout.closeDetails()
     expect(snapshots).toEqual([
-      { sidebar: 0, details: 0, artifacts: 0, narrow: false, narrowExpanded: false, leftPanel: 'chat' },
-      { sidebar: 0, details: 360, artifacts: 0, narrow: false, narrowExpanded: false, leftPanel: 'chat' },
-      { sidebar: 0, details: 0, artifacts: 0, narrow: false, narrowExpanded: false, leftPanel: 'chat' },
+      { sidebar: 0, details: 0, artifacts: ARTIFACTS_DEFAULT, narrow: false, narrowExpanded: false, leftPanel: 'chat' },
+      { sidebar: 0, details: 360, artifacts: ARTIFACTS_DEFAULT, narrow: false, narrowExpanded: false, leftPanel: 'chat' },
+      { sidebar: 0, details: 0, artifacts: ARTIFACTS_DEFAULT, narrow: false, narrowExpanded: false, leftPanel: 'chat' },
     ])
   })
 

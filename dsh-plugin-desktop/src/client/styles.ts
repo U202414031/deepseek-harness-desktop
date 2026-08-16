@@ -56,6 +56,23 @@ html:has([aria-modal="true"]) .dshDesktopSidebarSurface::before { -webkit-app-re
   --dsh-desktop-code-bg: var(--dsw-alias-bg-overlay, #f0f0f4);
 }
 
+/* ---- Whole-interface skinning: when a skin is active, force every desktop
+   surface (sidebar, conversation, details, artifacts, caption bars) to adopt the
+   skin tokens, and let the upstream chat content reveal the skinned backdrop. ---- */
+:root[data-skin] .dshDesktopSidebarSurface,
+:root[data-skin] .dshDesktopSidebarRail,
+:root[data-skin] .dshDesktopSidebarPanel,
+:root[data-skin] .dshDesktopConversationSurface,
+:root[data-skin] .dshDesktopDetailsSurface,
+:root[data-skin] .dshDesktopArtifactsSurface,
+:root[data-skin] .dshDesktopMacCaptionRow,
+:root[data-skin] .dshDesktopWindowsCaptionRow { background: var(--dsw-alias-bg-base); color: var(--dsw-alias-fg-base); }
+:root[data-skin] .dshDesktopSidebarRail { background: var(--dsh-desktop-surface); }
+:root[data-skin] .dshDesktopSidebarPanel { background: var(--dsh-desktop-bg); }
+:root[data-skin] .dshDesktopFrame { background: transparent; }
+/* Reveal the skinned conversation backdrop through the upstream chat content. */
+:root[data-skin] .dshDesktopConversationSurface > * { background-color: transparent !important; }
+
 /* ---- Left navigation rail + switchable panel column ---- */
 .dshDesktopSidebarSurface { display: flex; flex-direction: row; }
 .dshDesktopSidebarRail { flex: 0 0 56px; display: flex; flex-direction: column; gap: 6px; padding: 10px 0; align-items: center; background: var(--dsh-desktop-surface); border-right: 1px solid var(--dsh-desktop-border); }

@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { MarketplacePlugin } from './curated-registry.ts'
-import { CURATED_PLUGINS, fetchGithubPlugins } from './curated-registry.ts'
+import { CURATED_PLUGINS, fetchGithubPlugins, searchGithubPlugins } from './curated-registry.ts'
 
 /** LocalStorage key holding ids of plugins the user has installed. */
 const INSTALLED_KEY = 'dsh-desktop-installed-plugins'
@@ -21,7 +21,12 @@ export function MarketplacePanel(): JSX.Element {
   const [busy, setBusy] = useState<string | null>(null)
   const [lastLog, setLastLog] = useState<string | null>(null)
 
-  const refresh = useCallback(async (signal?: AbortSignal) => {
+  // Search state: when `query` is non-empty we are showing GitHub search results.
+  const [query, setQuery] = useState('')
+  const [searching, setSearching] = useState(false)
+  const searchController = useRef<AbortController | null>(null)
+
+  const loadDefault = useCallback(async (signal?: AbortSignal) => {
     setLoading(true)
     setError(null)
     try {
@@ -37,11 +42,52 @@ export function MarketplacePanel(): JSX.Element {
     }
   }, [])
 
+  const runSearch = useCallback(async (raw: string, signal?: AbortSignal) => {
+    const q = raw.trim()
+    if (q.length === 0) {
+      await loadDefault(signal)
+      return
+    }
+    setSearching(true)
+    setError(null)
+    try {
+      const results = await searchGithubPlugins(q, signal)
+      setPlugins(results)
+      if (results.length === 0) setError(`GitHub 上没有找到与「${q}」相关的仓库。`)
+    } catch (cause) {
+      if (signal?.aborted) return
+      setError(cause instanceof Error ? cause.message : '搜索失败，请稍后再试。')
+      setPlugins([])
+    } finally {
+      if (!signal?.aborted) setSearching(false)
+    }
+  }, [loadDefault])
+
   useEffect(() => {
     const controller = new AbortController()
-    void refresh(controller.signal)
+    void loadDefault(controller.signal)
     return () => { controller.abort() }
-  }, [refresh])
+  }, [loadDefault])
+
+  // Re-run the active search whenever the query box is cleared back to empty.
+  const onQueryChange = useCallback((value: string) => {
+    setQuery(value)
+    if (value.trim().length === 0) {
+      searchController.current?.abort()
+      setSearching(false)
+      void loadDefault()
+    }
+  }, [loadDefault])
+
+  const onSubmitSearch = useCallback((event: React.FormEvent) => {
+    event.preventDefault()
+    searchController.current?.abort()
+    const controller = new AbortController()
+    searchController.current = controller
+    void runSearch(query, controller.signal)
+  }, [query, runSearch])
+
+  useEffect(() => () => { searchController.current?.abort() }, [])
 
   const runOperation = useCallback(async (plugin: MarketplacePlugin, mode: 'install' | 'uninstall' | 'update') => {
     setBusy(plugin.id)
@@ -68,17 +114,45 @@ export function MarketplacePanel(): JSX.Element {
   }, [])
 
   const isInstalled = useCallback((id: string) => installed.includes(id), [installed])
+  const isSearching = loading || searching
 
   return (
     <div className="dshDesktopMarketplace">
       <header className="dshDesktopFeatureHeader">
         <h2 className="dshDesktopFeatureTitle">插件市场</h2>
         <p className="dshDesktopFeatureSubtitle">发现并安装适用于 DeepSeek Harness 桌面端的 dsh 插件。</p>
+        <form className="dshDesktopSearchRow" onSubmit={onSubmitSearch}>
+          <input
+            type="search"
+            className="dshDesktopSearchInput"
+            placeholder="搜索 GitHub 上的插件（关键词 / 仓库名）"
+            value={query}
+            onChange={(event) => { onQueryChange(event.target.value) }}
+            aria-label="搜索插件"
+          />
+          <button
+            type="submit"
+            className="dshDesktopSecondaryButton"
+            disabled={isSearching}
+          >
+            {searching ? '搜索中…' : '搜索'}
+          </button>
+          {query.trim().length > 0 && (
+            <button
+              type="button"
+              className="dshDesktopLinkButton"
+              onClick={() => { setQuery(''); searchController.current?.abort(); setSearching(false); void loadDefault() }}
+              disabled={isSearching}
+            >
+              清除
+            </button>
+          )}
+        </form>
         <button
           type="button"
-          className="dshDesktopSecondaryButton"
-          onClick={() => { void refresh() }}
-          disabled={loading}
+          className="dshDesktopSecondaryButton dshDesktopRefreshButton"
+          onClick={() => { void loadDefault() }}
+          disabled={isSearching}
         >
           {loading ? '加载中…' : '刷新列表'}
         </button>

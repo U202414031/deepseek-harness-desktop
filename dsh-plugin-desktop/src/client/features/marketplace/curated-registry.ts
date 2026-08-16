@@ -55,6 +55,21 @@ export const CURATED_PLUGINS: readonly MarketplacePlugin[] = Object.freeze([
   },
 ])
 
+/** Map a raw GitHub repository into a marketplace listing. */
+function mapRepo(repo: GithubRepo): MarketplacePlugin {
+  return {
+    id: `gh-${repo.full_name}`,
+    name: repo.name,
+    description: repo.description ?? 'DeepSeek Harness 相关插件。',
+    author: repo.owner?.login ?? 'unknown',
+    repository: repo.html_url,
+    installSpec: `github:${repo.full_name}`,
+    tags: repo.topics ?? [],
+    stars: repo.stargazers_count,
+    source: 'github',
+  }
+}
+
 /** Query GitHub for repositories tagged with the DeepSeek Harness topic. */
 export async function fetchGithubPlugins(signal?: AbortSignal): Promise<MarketplacePlugin[]> {
   const queries = [
@@ -75,17 +90,7 @@ export async function fetchGithubPlugins(signal?: AbortSignal): Promise<Marketpl
       for (const repo of payload.items ?? []) {
         const id = `gh-${repo.full_name}`
         if (seen.has(id)) continue
-        seen.set(id, {
-          id,
-          name: repo.name,
-          description: repo.description ?? 'DeepSeek Harness 相关插件。',
-          author: repo.owner?.login ?? 'unknown',
-          repository: repo.html_url,
-          installSpec: `github:${repo.full_name}`,
-          tags: repo.topics ?? [],
-          stars: repo.stargazers_count,
-          source: 'github',
-        })
+        seen.set(id, mapRepo(repo))
       }
     } catch (cause) {
       if (signal?.aborted) throw cause
@@ -93,6 +98,26 @@ export async function fetchGithubPlugins(signal?: AbortSignal): Promise<Marketpl
     }
   }
   return [...seen.values()]
+}
+
+/**
+ * Free-text search across GitHub repositories. The query is widened with
+ * `in:name,description,readme` so a bare keyword still matches plugin repos.
+ * @returns listings matching the query, newest matches first.
+ */
+export async function searchGithubPlugins(query: string, signal?: AbortSignal): Promise<MarketplacePlugin[]> {
+  const trimmed = query.trim()
+  if (trimmed.length === 0) return []
+  const url = `https://api.github.com/search/repositories?q=${encodeURIComponent(`${trimmed} in:name,description,readme`)}&sort=stars&order=desc&per_page=30`
+  const response = await fetch(url, {
+    signal: signal ?? null,
+    headers: { accept: 'application/vnd.github+json' },
+  })
+  if (!response.ok) {
+    throw new Error(`GitHub 搜索失败 (HTTP ${String(response.status)})`)
+  }
+  const payload = await response.json() as { items?: GithubRepo[] }
+  return (payload.items ?? []).map(mapRepo)
 }
 
 interface GithubRepo {

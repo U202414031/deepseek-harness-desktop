@@ -108,17 +108,6 @@ export function AdvancedFrame({ layout, platform, renderSlot, useSessions }: Adv
           >
             皮肤
           </button>
-          <button
-            type="button"
-            className="dshDesktopRailButton dshDesktopRailArtifacts"
-            data-active={panels.artifacts > 0 || undefined}
-            title="产物与代码"
-            aria-label="产物与代码"
-            aria-pressed={panels.artifacts > 0}
-            onClick={() => { layout.toggleArtifacts() }}
-          >
-            产物
-          </button>
         </nav>
         <div className="dshDesktopSidebarPanel">
           {panels.leftPanel === 'chat' && (

@@ -97,7 +97,7 @@ export class DesktopLayoutState {
   private snapshot: DesktopLayoutSnapshot = Object.freeze({
     sidebar: SIDEBAR_DEFAULT,
     details: 0,
-    artifacts: 0,
+    artifacts: ARTIFACTS_DEFAULT,
     narrow: false,
     narrowExpanded: false,
     leftPanel: 'chat',

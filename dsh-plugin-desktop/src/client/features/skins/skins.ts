@@ -13,6 +13,8 @@ export interface Skin {
    * so the broader product chrome re-skins where the names match.
    */
   variables: Record<string, string>
+  /** True for skins the user created themselves (persisted separately). */
+  custom?: boolean
 }
 
 /**
