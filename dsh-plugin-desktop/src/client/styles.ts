@@ -29,6 +29,7 @@ body[data-dsh-desktop-mode="advanced"] { margin: 0; background: transparent !imp
 .dshDesktopFrame[data-desktop-platform="win32"] .dshDesktopSidebarSurface { grid-row: 1 / -1; }
 .dshDesktopFrame[data-desktop-platform="win32"] .dshDesktopConversationSurface,
 .dshDesktopFrame[data-desktop-platform="win32"] .dshDesktopDetailsSurface { grid-row: 2; }
+.dshDesktopFrame[data-desktop-platform="win32"] .dshDesktopArtifactsSurface { grid-row: 1 / -1; }
 .dshDesktopWindowsCaptionRow { position: relative; grid-column: 2 / -1; grid-row: 1; min-width: 0; background: var(--dsw-alias-bg-base); }
 .dshDesktopWindowsCaptionRow::before { content: ""; position: absolute; inset: 0 ${WINDOWS_CAPTION_CONTROLS_WIDTH}px 0 0; user-select: none; -webkit-app-region: drag; }
 .dshDesktopFrame[data-sidebar-collapsed] { transition: grid-template-columns var(--ds-transition-duration-slow) var(--ds-ease-in-out); }
@@ -39,19 +40,61 @@ body[data-dsh-desktop-mode="advanced"] { margin: 0; background: transparent !imp
 .dshDesktopWhaleAmbient { position: fixed; inset: 0; z-index: 600; pointer-events: none; }
 /* Full-window whale-girl backdrop, painted behind the app frame. */
 .dshDesktopWhaleBg { position: fixed; inset: 0; z-index: -1; pointer-events: none; background-size: cover; background-position: center; background-repeat: no-repeat; }
-/* When a skin supplies a backdrop image, turn the desktop surfaces into frosted
-   glass so the artwork shows through instead of a flat fill. */
+/* When a skin supplies a backdrop image, the desktop surfaces become FULLY
+   transparent — the whale-girl wallpaper reads through the whole window
+   (sidebar, conversation, context) without any scrim or blur, exactly like
+   dsh-deep-whale where the interface melts into the artwork. Only the dialog
+   cards (bubbles) and the composer (input box) keep a themed frost so text
+   stays legible and the look changes with each skin's accent. */
 :root[data-skin][data-whale-bg] .dshDesktopSidebarSurface,
-:root[data-skin][data-whale-bg] .dshDesktopConversationSurface,
-:root[data-skin][data-whale-bg] .dshDesktopDetailsSurface,
-:root[data-skin][data-whale-bg] .dshDesktopArtifactsSurface,
+:root[data-skin][data-whale-bg] .dshDesktopSidebarRail,
+:root[data-skin][data-whale-bg] .dshDesktopSidebarPanel,
 :root[data-skin][data-whale-bg] .dshDesktopMacCaptionRow,
 :root[data-skin][data-whale-bg] .dshDesktopWindowsCaptionRow,
-:root[data-skin][data-whale-bg] .dshDesktopSidebarRail,
-:root[data-skin][data-whale-bg] .dshDesktopSidebarPanel {
-  background: color-mix(in srgb, var(--dsh-desktop-bg) 68%, transparent) !important;
-  -webkit-backdrop-filter: blur(15px) saturate(1.05);
-  backdrop-filter: blur(15px) saturate(1.05);
+:root[data-skin][data-whale-bg] .dshDesktopConversationSurface,
+:root[data-skin][data-whale-bg] .dshDesktopDetailsSurface,
+:root[data-skin][data-whale-bg] .dshDesktopArtifactsSurface {
+  background: transparent !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  border-color: color-mix(in srgb, var(--dsh-desktop-accent) 18%, transparent) !important;
+}
+/* The upstream chat content also turns see-through so the wallpaper shows. */
+:root[data-skin][data-whale-bg] .dshDesktopConversationSurface > * { background-color: transparent !important; }
+:root[data-skin][data-whale-bg] body {
+  --dsw-alias-bg-base: transparent !important;
+  --dsw-alias-bg-layer-1: color-mix(in srgb, var(--dsh-desktop-surface) 38%, transparent) !important;
+  --dsw-alias-bg-elevated: color-mix(in srgb, var(--dsh-desktop-surface) 42%, transparent) !important;
+}
+/* Real dialog cards (bubbles, code blocks) keep a themed frost so the text is
+   legible while still feeling like part of the skin. */
+:root[data-skin][data-whale-bg] .dshDesktopConversationSurface [class*="bubble"],
+:root[data-skin][data-whale-bg] .dshDesktopConversationSurface [class*="Message"] {
+  background: color-mix(in srgb, var(--dsh-desktop-surface) 58%, transparent) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(1.06);
+  backdrop-filter: blur(12px) saturate(1.06);
+  border: 1px solid color-mix(in srgb, var(--dsh-desktop-accent) 45%, transparent) !important;
+}
+/* Composer / input box: a designed, skin-tinted glass pill so it stands out as a
+   deliberate UI element while the surrounding surfaces stay fully transparent. */
+:root[data-skin][data-whale-bg] .dshDesktopConversationSurface [class*="composer"],
+:root[data-skin][data-whale-bg] .dshDesktopConversationSurface [class*="input-area"],
+:root[data-skin][data-whale-bg] .dshDesktopConversationSurface [class*="chat-input"],
+:root[data-skin][data-whale-bg] .dshDesktopConversationSurface textarea,
+:root[data-skin][data-whale-bg] .dshDesktopConversationSurface [contenteditable="true"] {
+  background: color-mix(in srgb, var(--dsh-desktop-surface) 32%, transparent) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(1.1) !important;
+  backdrop-filter: blur(16px) saturate(1.1) !important;
+  border: 1px solid color-mix(in srgb, var(--dsh-desktop-accent) 55%, transparent) !important;
+  border-radius: 18px !important;
+  box-shadow: 0 8px 30px color-mix(in srgb, var(--dsh-desktop-accent) 20%, transparent), inset 0 1px 0 rgba(255,255,255,.12) !important;
+  color: var(--dsh-desktop-fg) !important;
+}
+/* The primary send / submit button inside the composer follows the accent. */
+:root[data-skin][data-whale-bg] .dshDesktopConversationSurface [class*="composer"] [class*="send"] {
+  background: var(--dsh-desktop-accent) !important;
+  color: var(--dsh-desktop-accent-fg, #fff) !important;
+  border-color: var(--dsh-desktop-accent) !important;
 }
 .dshDesktopResizeHandle { position: absolute; z-index: 50; top: 0; bottom: 0; width: 8px; margin-left: -4px; cursor: col-resize; touch-action: none; -webkit-app-region: no-drag; }
 .dshDesktopNoDrag, button, input, textarea, select, a, [role="button"], [role="dialog"], [role="presentation"] { -webkit-app-region: no-drag; }
