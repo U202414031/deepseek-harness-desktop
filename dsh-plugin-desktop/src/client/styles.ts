@@ -349,6 +349,13 @@ a.dshDesktopApiLink.dshDesktopSecondaryButton { color: var(--dsh-desktop-fg); }
 .dshDesktopToolsMsgText { font-size: 12px; color: var(--dsh-desktop-fg); white-space: pre-wrap; word-break: break-word; }
 .dshDesktopToolsInfo { font-size: 12px; color: #1f9d55; margin: 0; }
 
+/* ---- Tools: auto-summary digest history ---- */
+.dshDesktopToolsSummaries { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto; }
+.dshDesktopToolsSummaryItem { border: 1px solid var(--dsh-desktop-border); border-radius: 9px; padding: 8px 10px; background: var(--dsh-desktop-surface-2); }
+.dshDesktopToolsSummaryHead { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; color: var(--dsh-desktop-fg-muted); margin-bottom: 5px; }
+.dshDesktopToolsSummaryTarget { color: var(--dsh-desktop-accent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 60%; }
+.dshDesktopToolsSummaryItem .dshDesktopToolsSummary { background: var(--dsh-desktop-surface); }
+
 /* ---- Tools: target type selector + scheduled send ---- */
 .dshDesktopToolsTypeRow { display: flex; gap: 6px; }
 .dshDesktopToolsTypeBtn { flex: 1 1 0; padding: 6px 4px; border: 1px solid var(--dsh-desktop-border); border-radius: 8px; background: var(--dsh-desktop-surface); color: var(--dsh-desktop-fg-muted); font-size: 12px; cursor: pointer; -webkit-app-region: no-drag; transition: border-color .15s, color .15s, background .15s; }

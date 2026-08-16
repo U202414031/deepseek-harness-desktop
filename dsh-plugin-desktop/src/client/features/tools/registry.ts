@@ -1,4 +1,4 @@
-import type { Connector, PlatformId, PlatformMeta, ScheduleItem } from './platform-types.ts'
+import type { AutoConfig, Connector, PlatformId, PlatformMeta, ScheduleItem, SummaryEntry } from './platform-types.ts'
 import { feishuConnector } from './feishu.ts'
 import { wechatConnector } from './wechat.ts'
 import { qqConnector } from './qq.ts'
@@ -87,6 +87,68 @@ export function saveToolSchedules(platform: PlatformId, items: ScheduleItem[]): 
       return
     }
     localStorage.setItem(`${SCHEDULE_PREFIX}:${platform}`, JSON.stringify(items))
+  } catch {
+    /* storage unavailable — ignore */
+  }
+}
+
+const SUMMARY_PREFIX = 'dsh-desktop-tools-summaries'
+
+/** @returns the persisted auto-summary digest history for a platform (oldest-first order). */
+export function loadToolSummaries(platform: PlatformId): SummaryEntry[] {
+  try {
+    const raw = localStorage.getItem(`${SUMMARY_PREFIX}:${platform}`)
+    if (raw === null) return []
+    const parsed = JSON.parse(raw) as unknown
+    if (!Array.isArray(parsed)) return []
+    return parsed.filter(
+      (item): item is SummaryEntry =>
+        item !== null &&
+        typeof item === 'object' &&
+        typeof (item as SummaryEntry).id === 'string' &&
+        typeof (item as SummaryEntry).at === 'number',
+    )
+  } catch {
+    return []
+  }
+}
+
+/** Persist the auto-summary digest history for a platform (empty array clears storage). */
+export function saveToolSummaries(platform: PlatformId, items: SummaryEntry[]): void {
+  try {
+    if (items.length === 0) {
+      localStorage.removeItem(`${SUMMARY_PREFIX}:${platform}`)
+      return
+    }
+    localStorage.setItem(`${SUMMARY_PREFIX}:${platform}`, JSON.stringify(items))
+  } catch {
+    /* storage unavailable — ignore */
+  }
+}
+
+const AUTO_PREFIX = 'dsh-desktop-tools-auto'
+
+/** @returns the persisted auto-summary job config for a platform (sensible defaults when unset). */
+export function loadToolAuto(platform: PlatformId): AutoConfig {
+  try {
+    const raw = localStorage.getItem(`${AUTO_PREFIX}:${platform}`)
+    if (raw === null) return { enabled: false, interval: 15, target: '', targetType: '' }
+    const parsed = JSON.parse(raw) as Partial<AutoConfig>
+    return {
+      enabled: parsed.enabled === true,
+      interval: typeof parsed.interval === 'number' && parsed.interval > 0 ? parsed.interval : 15,
+      target: typeof parsed.target === 'string' ? parsed.target : '',
+      targetType: typeof parsed.targetType === 'string' ? parsed.targetType : '',
+    }
+  } catch {
+    return { enabled: false, interval: 15, target: '', targetType: '' }
+  }
+}
+
+/** Persist the auto-summary job config for a platform. */
+export function saveToolAuto(platform: PlatformId, cfg: AutoConfig): void {
+  try {
+    localStorage.setItem(`${AUTO_PREFIX}:${platform}`, JSON.stringify(cfg))
   } catch {
     /* storage unavailable — ignore */
   }

@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type {
-  ConnStatus, PlatformId, PlatformMessage, PlatformTarget, ScheduleItem, ToolTask,
+  AutoConfig, ConnStatus, PlatformId, PlatformMessage, PlatformTarget, ScheduleItem, SummaryEntry, ToolTask,
 } from './platform-types.ts'
 import {
-  CONNECTORS, PLATFORMS, clearToolConfig, loadToolConfig, loadToolSchedules, saveToolConfig, saveToolSchedules,
+  CONNECTORS, PLATFORMS, clearToolConfig, loadToolAuto, loadToolConfig, loadToolSchedules, loadToolSummaries, saveToolAuto, saveToolConfig, saveToolSchedules, saveToolSummaries,
 } from './registry.ts'
 import { loadTasks, newTaskId, saveTasks } from './tasks.ts'
 import { extractTasks, summarize } from './llm.ts'
@@ -58,6 +58,10 @@ export function ToolsPanel(): JSX.Element {
   const [schedules, setSchedules] = useState<ScheduleItem[]>(() => loadToolSchedules(activeId))
   const [schedTime, setSchedTime] = useState<string>('')
   const [schedText, setSchedText] = useState<string>('')
+  const [summaries, setSummaries] = useState<SummaryEntry[]>(() => loadToolSummaries(activeId))
+  const [autoOn, setAutoOn] = useState<boolean>(false)
+  const [autoInterval, setAutoInterval] = useState<number>(15)
+  const autoTimer = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const [fieldError, setFieldError] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(null)
@@ -143,8 +147,20 @@ export function ToolsPanel(): JSX.Element {
     loaded.forEach((item) => {
       if (item.status === 'pending') scheduleItem(item)
     })
+    // Restore auto-summary state and re-arm if it was enabled.
+    stopAutoTimer()
+    setAutoOn(false)
+    const auto = loadToolAuto(activeId)
+    setAutoInterval(auto.interval)
+    setSummaries(loadToolSummaries(activeId))
+    if (auto.enabled && auto.target.trim().length > 0) {
+      startAuto(auto.target, auto.targetType, auto.interval)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeId])
+
+  // Clear the auto-summary timer if the panel ever unmounts.
+  useEffect(() => () => { stopAutoTimer() }, [])
 
   // Persist tasks whenever they change for the active platform.
   useEffect(() => {
@@ -336,6 +352,78 @@ export function ToolsPanel(): JSX.Element {
     scheduleItem({ ...item, status: 'pending' })
   }
 
+  const appendSummary = (text: string, target: string, targetType: string): void => {
+    const entry: SummaryEntry = { id: newTaskId(), at: Date.now(), target, targetType, text }
+    setSummaries((prev) => {
+      const next = [...prev, entry]
+      saveToolSummaries(activeId, next)
+      return next
+    })
+  }
+
+  const stopAutoTimer = (): void => {
+    if (autoTimer.current !== null) {
+      clearInterval(autoTimer.current)
+      autoTimer.current = null
+    }
+  }
+
+  const stopAuto = (): void => {
+    stopAutoTimer()
+    setAutoOn(false)
+    const next: AutoConfig = { enabled: false, interval: autoInterval, target: '', targetType: '' }
+    saveToolAuto(activeId, next)
+  }
+
+  const startAuto = (target: string, targetType: string, intervalMin: number): void => {
+    stopAutoTimer()
+    const platform = activeId
+    const conn = connector
+    const runOnce = async (): Promise<void> => {
+      const cfg = loadToolConfig(platform)
+      if (Object.keys(cfg).length === 0) {
+        stopAuto()
+        setInfo('自动总结已停止：缺少配置，请先填写并保存凭证。')
+        return
+      }
+      let tk: string
+      try {
+        tk = await conn.connect(cfg)
+      } catch (e) {
+        stopAuto()
+        setInfo(`自动总结已停止：重连失败（${e instanceof Error ? e.message : '未知错误'}）。`)
+        return
+      }
+      if (target.trim().length === 0) {
+        stopAuto()
+        setInfo('自动总结已停止：未选择目标。')
+        return
+      }
+      let msgs: PlatformMessage[] = []
+      try {
+        msgs = await conn.fetchMessages(tk, target, { targetType })
+      } catch {
+        msgs = []
+      }
+      const text = msgs.map((m) => `${m.sender}：${m.text}`).join('\n')
+      if (text.trim().length === 0) {
+        appendSummary('（本次未获取到新消息）', target, targetType)
+        return
+      }
+      try {
+        appendSummary(await summarize(text), target, targetType)
+      } catch {
+        appendSummary('（总结失败）', target, targetType)
+      }
+    }
+    const ms = Math.max(1, intervalMin) * 60_000
+    autoTimer.current = setInterval(() => { void runOnce() }, ms)
+    void runOnce()
+    setAutoOn(true)
+    const next: AutoConfig = { enabled: true, interval: intervalMin, target, targetType }
+    saveToolAuto(platform, next)
+  }
+
   return (
     <div className="dshDesktopTools">
       <header className="dshDesktopFeatureHeader">
@@ -516,6 +604,65 @@ export function ToolsPanel(): JSX.Element {
           {extracting ? '提取中…' : '从总结/消息中提取任务'}
         </button>
       </div>
+
+      {meta.supportsFetch && (
+        <div className="dshDesktopToolsCard">
+          <h3 className="dshDesktopToolsSection">自动总结</h3>
+          {activeId === 'qq' && (
+            <p className="dshDesktopToolsNote">QQ 群历史通过 REST 常为空，自动总结以实际返回为准；私聊历史需经机器人网关实时接收，暂不支持自动拉取。</p>
+          )}
+          <label className="dshDesktopSkinField">
+            <span>间隔（分钟）</span>
+            <select
+              className="dshDesktopSearchInput"
+              value={autoInterval}
+              onChange={(event) => { setAutoInterval(Number(event.target.value)) }}
+            >
+              {[1, 5, 15, 30, 60].map((m) => (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
+          </label>
+          <p className="dshDesktopToolsNote">
+            监控目标：{effectiveTargetLabel}「{targetId || '（未选择）'}」，到点自动拉取并总结，记录保存在本机。
+          </p>
+          <div className="dshDesktopApiActions">
+            <button
+              type="button"
+              className="dshDesktopPrimaryButton"
+              onClick={() => { startAuto(targetId, targetType, autoInterval) }}
+              disabled={autoOn || targetId.trim().length === 0}
+            >
+              {autoOn ? '运行中…' : '开始自动总结'}
+            </button>
+            <button type="button" className="dshDesktopSecondaryButton" onClick={stopAuto} disabled={!autoOn}>
+              停止
+            </button>
+            <button
+              type="button"
+              className="dshDesktopSecondaryButton"
+              onClick={() => { setSummaries([]); saveToolSummaries(activeId, []) }}
+            >
+              清空记录
+            </button>
+          </div>
+          {summaries.length === 0 ? (
+            <p className="dshDesktopToolsNote">暂无自动总结记录。开始后将按设定间隔生成摘要（支持 DeepSeek AI 总结，未填 Key 时退回本地截取）。</p>
+          ) : (
+            <ul className="dshDesktopToolsSummaries">
+              {summaries.slice().reverse().map((s) => (
+                <li key={s.id} className="dshDesktopToolsSummaryItem">
+                  <div className="dshDesktopToolsSummaryHead">
+                    <span>{formatTime(s.at)}</span>
+                    <span className="dshDesktopToolsSummaryTarget">→ {s.target}</span>
+                  </div>
+                  <div className="dshDesktopToolsSummary">{s.text}</div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       <div className="dshDesktopToolsCard">
         <h3 className="dshDesktopToolsSection">任务</h3>

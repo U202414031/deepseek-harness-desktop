@@ -63,6 +63,30 @@ export interface ScheduleItem {
   result?: string
 }
 
+/** Persisted state of the auto-summary job for one platform. */
+export interface AutoConfig {
+  enabled: boolean
+  /** Minutes between automatic summary runs. */
+  interval: number
+  /** Target the job monitors (a chat id / openid). */
+  target: string
+  /** Destination kind the job monitors. */
+  targetType: string
+}
+
+/** One digest produced by an auto-summary run. */
+export interface SummaryEntry {
+  id: string
+  /** Epoch ms when the run completed. */
+  at: number
+  /** Target the run summarized (a chat id / openid). */
+  target: string
+  /** Destination kind that was summarized. */
+  targetType: string
+  /** The generated summary text. */
+  text: string
+}
+
 /** A selectable message destination (chat / group / user). */
 export interface PlatformTarget {
   id: string
