@@ -112,7 +112,7 @@ export function AdvancedFrame({ layout, platform, renderSlot, useSessions }: Adv
         <div className="dshDesktopSidebarPanel">
           {panels.leftPanel === 'chat' && (
             <div className="dshDesktopUpstreamSidebar">
-              {renderSlot('sidebar', { collapsed, width: columns.sidebar })}
+              {renderSlot('sidebar', { collapsed, width: collapsed ? columns.sidebar : Math.max(0, columns.sidebar - 56) })}
             </div>
           )}
           {panels.leftPanel === 'marketplace' && renderSlot('sidebar.marketplace', {})}
@@ -123,6 +123,17 @@ export function AdvancedFrame({ layout, platform, renderSlot, useSessions }: Adv
       <aside className="dshDesktopDetailsSurface">{renderSlot('details', {})}</aside>
       {columns.artifacts > 0 && (
         <aside className="dshDesktopArtifactsSurface">{renderSlot('artifacts', {})}</aside>
+      )}
+      {columns.artifacts === 0 && (
+        <button
+          type="button"
+          className="dshDesktopArtifactsReopen"
+          title="展开产物与代码"
+          aria-label="展开产物与代码"
+          onClick={() => { layout.openArtifacts() }}
+        >
+          产物
+        </button>
       )}
       <div className="dshDesktopOverlay" data-shell-overlay>
         {renderSlot('shell.overlay', {})}

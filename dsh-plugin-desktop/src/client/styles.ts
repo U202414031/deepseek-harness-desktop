@@ -13,7 +13,7 @@ html, body, #root { width: 100%; height: 100%; }
 body[data-dsh-desktop-mode="advanced"] { margin: 0; background: transparent !important; }
 .dshDesktopFrame { position: relative; display: grid; grid-template-rows: 100%; width: 100%; height: 100%; overflow: hidden; background: transparent; }
 .dshDesktopSidebarSurface { --dsw-specific-sidebar-fill: transparent; position: relative; grid-column: 1; grid-row: 1; min-width: 0; overflow: hidden; background: transparent; border-right: 1px solid var(--dsw-alias-border-l1); }
-.dshDesktopUpstreamSidebar { box-sizing: border-box; width: 100%; height: 100%; }
+.dshDesktopUpstreamSidebar { box-sizing: border-box; width: 100%; height: 100%; overflow-x: hidden; }
 .dshDesktopFrame[data-desktop-platform="darwin"] .dshDesktopUpstreamSidebar { padding-top: ${MACOS_TITLEBAR_HEIGHT}px; -webkit-app-region: no-drag; }
 .dshDesktopFrame[data-desktop-platform="darwin"][data-sidebar-collapsed] .dshDesktopUpstreamSidebar { width: ${SIDEBAR_COLLAPSED}px; margin: 0 auto; }
 .dshDesktopFrame[data-desktop-platform="darwin"] { grid-template-rows: ${MACOS_TITLEBAR_HEIGHT}px minmax(0, 1fr); }
@@ -80,7 +80,7 @@ html:has([aria-modal="true"]) .dshDesktopSidebarSurface::before { -webkit-app-re
 .dshDesktopRailButton:hover { background: var(--dsh-desktop-surface-2); color: var(--dsh-desktop-fg); }
 .dshDesktopRailButton[data-active] { background: var(--dsh-desktop-accent); color: var(--dsh-desktop-accent-fg); border-color: var(--dsh-desktop-accent); }
 .dshDesktopSidebarPanel { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--dsh-desktop-bg); }
-.dshDesktopUpstreamSidebar { box-sizing: border-box; width: 100%; height: 100%; }
+.dshDesktopUpstreamSidebar { box-sizing: border-box; width: 100%; height: 100%; overflow-x: hidden; }
 
 /* ---- Feature surfaces (marketplace / skins / artifacts) ---- */
 .dshDesktopMarketplace, .dshDesktopSkins, .dshDesktopArtifacts { display: flex; flex-direction: column; height: 100%; min-height: 0; color: var(--dsh-desktop-fg); }
@@ -112,6 +112,9 @@ html:has([aria-modal="true"]) .dshDesktopSidebarSurface::before { -webkit-app-re
 /* ---- Skins ---- */
 .dshDesktopSkinCard { width: 100%; display: flex; align-items: center; gap: 10px; padding: 10px; border: 1px solid var(--dsh-desktop-border); border-radius: 10px; background: var(--dsh-desktop-surface); cursor: pointer; text-align: left; -webkit-app-region: no-drag; }
 .dshDesktopSkinCard[data-selected] { border-color: var(--dsh-desktop-accent); box-shadow: 0 0 0 1px var(--dsh-desktop-accent); }
+.dshDesktopSkinRow { display: flex; align-items: stretch; gap: 8px; }
+.dshDesktopSkinRow .dshDesktopSkinCard { flex: 1 1 auto; }
+.dshDesktopSkinDelete { flex: 0 0 auto; align-self: center; }
 .dshDesktopSkinSwatch { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 8px; overflow: hidden; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; border: 1px solid var(--dsh-desktop-border); }
 .dshDesktopSkinSwatch span { display: block; }
 .dshDesktopSkinMeta { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; }
@@ -119,12 +122,26 @@ html:has([aria-modal="true"]) .dshDesktopSidebarSurface::before { -webkit-app-re
 .dshDesktopSkinDesc { font-size: 11px; color: var(--dsh-desktop-fg-muted); }
 .dshDesktopSkinBadge { flex: 0 0 auto; font-size: 10px; padding: 2px 6px; border-radius: 999px; background: var(--dsh-desktop-accent); color: var(--dsh-desktop-accent-fg); }
 
+/* ---- Skin creator + importer ---- */
+.dshDesktopSkinCreator, .dshDesktopSkinImport { padding: 14px 16px; border-top: 1px solid var(--dsh-desktop-border); display: flex; flex-direction: column; gap: 10px; }
+.dshDesktopSkinCreatorTitle { margin: 0; font-size: 13px; font-weight: 600; color: var(--dsh-desktop-fg); }
+.dshDesktopSkinField { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--dsh-desktop-fg-muted); }
+.dshDesktopSearchInput, .dshDesktopSkinTextArea, .dshDesktopFileInput { box-sizing: border-box; width: 100%; padding: 6px 8px; border: 1px solid var(--dsh-desktop-border); border-radius: 8px; background: var(--dsh-desktop-surface); color: var(--dsh-desktop-fg); font-size: 12px; font-family: inherit; }
+.dshDesktopSkinTextArea { min-height: 96px; resize: vertical; white-space: pre; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.dshDesktopSkinColors { display: flex; flex-wrap: wrap; gap: 10px; }
+.dshDesktopColorField { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 10px; color: var(--dsh-desktop-fg-muted); }
+.dshDesktopColorField input[type="color"] { width: 36px; height: 28px; padding: 0; border: 1px solid var(--dsh-desktop-border); border-radius: 8px; background: none; cursor: pointer; }
+
 /* ---- Artifacts / code right panel ---- */
 .dshDesktopArtifactsSurface { grid-column: 4; grid-row: 1; min-width: 0; min-height: 0; overflow: hidden; background: var(--dsh-desktop-bg); border-left: 1px solid var(--dsh-desktop-border); display: flex; flex-direction: column; }
 .dshDesktopArtifactsTabs { display: flex; gap: 4px; padding: 8px 12px 0; }
 .dshDesktopArtifactsTab { font-size: 12px; padding: 6px 10px; border: 1px solid transparent; border-bottom: none; border-radius: 8px 8px 0 0; background: transparent; color: var(--dsh-desktop-fg-muted); cursor: pointer; -webkit-app-region: no-drag; }
 .dshDesktopArtifactsTab[aria-selected="true"] { color: var(--dsh-desktop-fg); background: var(--dsh-desktop-surface); }
 .dshDesktopArtifactsBody { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 10px 12px; }
+.dshDesktopArtifactsHeader { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.dshDesktopArtifactsActions { display: flex; align-items: center; gap: 6px; }
+.dshDesktopArtifactsReopen { position: absolute; top: 50%; right: 0; transform: translateY(-50%); z-index: 40; writing-mode: vertical-rl; padding: 12px 4px; border: 1px solid var(--dsh-desktop-border); border-right: none; border-radius: 8px 0 0 8px; background: var(--dsh-desktop-surface); color: var(--dsh-desktop-fg); font-size: 12px; cursor: pointer; -webkit-app-region: no-drag; }
+.dshDesktopArtifactsReopen:hover { background: var(--dsh-desktop-surface-2); color: var(--dsh-desktop-fg); }
 .dshDesktopEmptyState { color: var(--dsh-desktop-fg-muted); font-size: 13px; padding: 8px; }
 .dshDesktopCodeList, .dshDesktopArtifactList { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .dshDesktopCodeCard, .dshDesktopArtifactCard { border: 1px solid var(--dsh-desktop-border); border-radius: 10px; overflow: hidden; background: var(--dsh-desktop-surface); }

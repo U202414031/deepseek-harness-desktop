@@ -22,6 +22,8 @@ export interface DesktopLayoutService {
   closeArtifacts(): void
   /** Toggle the artifacts/code panel open/closed. */
   toggleArtifacts(): void
+  /** Toggle the artifacts/code panel between default and enlarged width. */
+  toggleArtifactsExpanded(): void
 }
 
 /** Left-surface selection rendered inside the desktop-owned sidebar column. */

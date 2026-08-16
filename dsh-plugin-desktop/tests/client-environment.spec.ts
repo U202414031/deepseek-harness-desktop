@@ -118,9 +118,9 @@ describe('advanced desktop layout', () => {
     layout.openDetails()
     layout.closeDetails()
     expect(snapshots).toEqual([
-      { sidebar: 0, details: 0, artifacts: ARTIFACTS_DEFAULT, narrow: false, narrowExpanded: false, leftPanel: 'chat' },
-      { sidebar: 0, details: 360, artifacts: ARTIFACTS_DEFAULT, narrow: false, narrowExpanded: false, leftPanel: 'chat' },
-      { sidebar: 0, details: 0, artifacts: ARTIFACTS_DEFAULT, narrow: false, narrowExpanded: false, leftPanel: 'chat' },
+      { sidebar: 0, details: 0, artifacts: ARTIFACTS_DEFAULT, artifactsExpanded: false, narrow: false, narrowExpanded: false, leftPanel: 'chat' },
+      { sidebar: 0, details: 360, artifacts: ARTIFACTS_DEFAULT, artifactsExpanded: false, narrow: false, narrowExpanded: false, leftPanel: 'chat' },
+      { sidebar: 0, details: 0, artifacts: ARTIFACTS_DEFAULT, artifactsExpanded: false, narrow: false, narrowExpanded: false, leftPanel: 'chat' },
     ])
   })
 

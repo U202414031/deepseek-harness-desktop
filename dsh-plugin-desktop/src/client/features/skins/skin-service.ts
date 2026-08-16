@@ -65,6 +65,32 @@ export function deleteCustomSkin(id: string): void {
   if (current === id) setSkin('default')
 }
 
+/**
+ * Validate and normalize an externally-provided skin definition (e.g. pasted or
+ * uploaded JSON). Returns a ready-to-persist `Skin`, or `null` when the payload
+ * is not a usable skin. A fresh id is assigned to avoid clashing with built-ins.
+ */
+export function parseImportedSkin(raw: unknown): Skin | null {
+  if (typeof raw !== 'object' || raw === null) return null
+  const record = raw as Record<string, unknown>
+  const variables = record.variables
+  if (typeof variables !== 'object' || variables === null) return null
+  const varRecord = variables as Record<string, unknown>
+  const normalized: Record<string, string> = {}
+  for (const [key, value] of Object.entries(varRecord)) {
+    if (typeof value === 'string' && key.startsWith('--')) normalized[key] = value
+  }
+  if (Object.keys(normalized).length === 0) return null
+  const label = typeof record.label === 'string' && record.label.trim().length > 0 ? record.label.trim() : '导入的皮肤'
+  const description = typeof record.description === 'string' ? record.description : '从外部导入的自定义皮肤。'
+  return { id: `import-${Date.now().toString(36)}`, label, description, variables: normalized, custom: true }
+}
+
+/** Serialize a skin definition to a portable JSON string for export. */
+export function exportCustomSkin(skin: Skin): string {
+  return JSON.stringify({ id: skin.id, label: skin.label, description: skin.description, variables: skin.variables }, null, 2)
+}
+
 /** Select a skin by id, persist it, and apply its tokens to the document. */
 export function setSkin(id: string): void {
   const next = getSkinById(id).id

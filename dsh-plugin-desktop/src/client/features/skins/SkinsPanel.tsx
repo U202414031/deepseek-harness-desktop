@@ -1,7 +1,8 @@
 import { useSyncExternalStore, useState } from 'react'
 import type { Skin } from './skins.ts'
 import {
-  deleteCustomSkin, getCatalog, getSkin, saveCustomSkin, setSkin, subscribeCatalog, subscribeSkin,
+  deleteCustomSkin, exportCustomSkin, getCatalog, getSkin, parseImportedSkin,
+  saveCustomSkin, setSkin, subscribeCatalog, subscribeSkin,
 } from './skin-service.ts'
 
 /** Build the full token map from a compact set of user-picked colors. */
@@ -44,6 +45,59 @@ export function SkinsPanel(): JSX.Element {
   const [accent, setAccent] = useState('#5b8cff')
   const [codeBg, setCodeBg] = useState('#0d1426')
   const [error, setError] = useState<string | null>(null)
+
+  const [importText, setImportText] = useState('')
+  const [importError, setImportError] = useState<string | null>(null)
+
+  const onImportFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file === undefined) return
+    try {
+      const text = await file.text()
+      const skin = parseImportedSkin(JSON.parse(text))
+      if (skin === null) {
+        setImportError('该文件不是有效的皮肤定义。')
+        return
+      }
+      saveCustomSkin(skin)
+      setSkin(skin.id)
+      setImportError(null)
+    } catch {
+      setImportError('无法解析该文件，请确认是 JSON 格式。')
+    } finally {
+      event.target.value = ''
+    }
+  }
+
+  const onImportText = () => {
+    if (importText.trim().length === 0) {
+      setImportError('请先粘贴皮肤 JSON。')
+      return
+    }
+    try {
+      const skin = parseImportedSkin(JSON.parse(importText))
+      if (skin === null) {
+        setImportError('这段 JSON 不是有效的皮肤定义。')
+        return
+      }
+      saveCustomSkin(skin)
+      setSkin(skin.id)
+      setImportText('')
+      setImportError(null)
+    } catch {
+      setImportError('无法解析 JSON，请检查格式。')
+    }
+  }
+
+  const onExport = (skin: Skin) => {
+    const blob = new Blob([exportCustomSkin(skin)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = `${skin.label || 'skin'}.json`
+    anchor.click()
+    URL.revokeObjectURL(url)
+  }
 
   const onCreate = (event: React.FormEvent) => {
     event.preventDefault()
@@ -97,14 +151,24 @@ export function SkinsPanel(): JSX.Element {
                   {selected && <span className="dshDesktopSkinBadge">使用中</span>}
                 </button>
                 {skin.custom && (
-                  <button
-                    type="button"
-                    className="dshDesktopDangerButton dshDesktopSkinDelete"
-                    aria-label={`删除 ${skin.label}`}
-                    onClick={() => { deleteCustomSkin(skin.id) }}
-                  >
-                    删除
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      className="dshDesktopSecondaryButton dshDesktopSkinDelete"
+                      aria-label={`导出 ${skin.label}`}
+                      onClick={() => { onExport(skin) }}
+                    >
+                      导出
+                    </button>
+                    <button
+                      type="button"
+                      className="dshDesktopDangerButton dshDesktopSkinDelete"
+                      aria-label={`删除 ${skin.label}`}
+                      onClick={() => { deleteCustomSkin(skin.id) }}
+                    >
+                      删除
+                    </button>
+                  </>
                 )}
               </div>
             </li>
@@ -149,6 +213,26 @@ export function SkinsPanel(): JSX.Element {
         {error !== null && <p className="dshDesktopMarketplaceNote">{error}</p>}
         <button type="submit" className="dshDesktopPrimaryButton">保存并使用</button>
       </form>
+
+      <div className="dshDesktopSkinImport">
+        <h3 className="dshDesktopSkinCreatorTitle">导入皮肤</h3>
+        <p className="dshDesktopFeatureSubtitle">上传或粘贴一份皮肤 JSON（需包含 <code>variables</code> 字段）即可导入到本地并使用。</p>
+        <label className="dshDesktopSkinField">
+          <span>上传文件</span>
+          <input type="file" accept="application/json,.json" className="dshDesktopFileInput" onChange={onImportFile} />
+        </label>
+        <label className="dshDesktopSkinField">
+          <span>或粘贴 JSON</span>
+          <textarea
+            className="dshDesktopSkinTextArea"
+            value={importText}
+            placeholder={'{\n  "label": "我的皮肤",\n  "variables": { "--dsh-desktop-bg": "#101010" }\n}'}
+            onChange={(event) => { setImportText(event.target.value) }}
+          />
+        </label>
+        <button type="button" className="dshDesktopPrimaryButton" onClick={onImportText}>导入</button>
+        {importError !== null && <p className="dshDesktopMarketplaceNote">{importError}</p>}
+      </div>
     </div>
   )
 }

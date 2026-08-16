@@ -6,6 +6,8 @@ export interface DesktopLayoutSnapshot {
   details: number
   /** Preferred artifacts/code panel width; zero means closed. */
   artifacts: number
+  /** Whether the artifacts/code panel is currently in its enlarged width. */
+  artifactsExpanded: boolean
   /** Whether the current viewport is below the automatic-collapse breakpoint. */
   narrow: boolean
   /** Manual narrow-screen override that temporarily expands the rail. */
@@ -98,6 +100,7 @@ export class DesktopLayoutState {
     sidebar: SIDEBAR_DEFAULT,
     details: 0,
     artifacts: ARTIFACTS_DEFAULT,
+    artifactsExpanded: false,
     narrow: false,
     narrowExpanded: false,
     leftPanel: 'chat',
@@ -160,6 +163,17 @@ export class DesktopLayoutState {
   toggleArtifacts(): void {
     if (this.snapshot.artifacts === 0) this.openArtifacts()
     else this.closeArtifacts()
+  }
+
+  /** Toggle the artifacts/code panel between its default and enlarged width. */
+  toggleArtifactsExpanded(): void {
+    const expanded = !this.snapshot.artifactsExpanded
+    const base = this.snapshot.artifacts === 0 ? ARTIFACTS_DEFAULT : this.snapshot.artifacts
+    this.publish({
+      ...this.snapshot,
+      artifactsExpanded: expanded,
+      artifacts: expanded ? ARTIFACTS_MAX : Math.min(base, ARTIFACTS_DEFAULT),
+    })
   }
 
   /** @param width - requested sidebar width from a resize gesture. */
