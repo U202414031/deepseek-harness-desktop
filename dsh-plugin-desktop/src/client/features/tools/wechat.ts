@@ -50,7 +50,7 @@ export const wechatConnector: Connector = {
     return `${data.access_token}::${agentid}`
   },
 
-  async sendMessage(token: string, target: string, text: string): Promise<SendResult> {
+  async sendMessage(token: string, target: string, text: string, _opts?: { targetType?: string }): Promise<SendResult> {
     try {
       const sep = token.indexOf('::')
       const accessToken = sep >= 0 ? token.slice(0, sep) : token
@@ -78,7 +78,7 @@ export const wechatConnector: Connector = {
     throw new Error('企业微信需手动填写接收成员账号，不支持自动列出。')
   },
 
-  async fetchMessages(_token: string, _target: string): Promise<PlatformMessage[]> {
+  async fetchMessages(_token: string, _target: string, _opts?: { targetType?: string }): Promise<PlatformMessage[]> {
     throw new Error('企业微信不提供公开的历史消息拉取接口。')
   },
 }

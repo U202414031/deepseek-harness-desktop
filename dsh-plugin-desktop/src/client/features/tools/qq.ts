@@ -21,7 +21,11 @@ const META: PlatformMeta = {
   supportsFetch: true,
   targetMode: 'select',
   targetLabel: '接收群',
-  note: '需先在 QQ 开放平台创建机器人并审核通过。群消息读取通常需要机器人具备相应权限且群已授权。',
+  targetTypes: [
+    { id: 'group', label: '群', input: 'select' },
+    { id: 'c2c', label: '私聊(对象)', input: 'text', placeholder: '对方 user_openid（当对方发消息给机器人时，可从消息事件中取得）' },
+  ],
+  note: '需先在 QQ 开放平台创建机器人并审核通过。群消息读取通常需要机器人具备相应权限且群已授权；私聊历史需经机器人网关实时接收，REST 不支持拉取，可粘贴消息后总结。',
 }
 
 interface TokenResponse {
@@ -59,9 +63,14 @@ export const qqConnector: Connector = {
     return data.access_token
   },
 
-  async sendMessage(token: string, target: string, text: string): Promise<SendResult> {
+  async sendMessage(token: string, target: string, text: string, opts?: { targetType?: string }): Promise<SendResult> {
+    const targetType = opts?.targetType ?? 'group'
+    const url =
+      targetType === 'c2c'
+        ? `${QQ_API}/v2/users/${encodeURIComponent(target)}/messages`
+        : `${QQ_API}/v2/groups/${encodeURIComponent(target)}/messages`
     try {
-      const response = await fetch(`${QQ_API}/v2/groups/${encodeURIComponent(target)}/messages`, {
+      const response = await fetch(url, {
         method: 'POST',
         headers: { Authorization: `QQBot ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: text, msg_type: 0 }),
@@ -70,7 +79,7 @@ export const qqConnector: Connector = {
       if (!response.ok || data.code !== 0) {
         return { ok: false, message: `发送失败：${data.message ?? `HTTP ${response.status}`}` }
       }
-      return { ok: true, message: '已发送' }
+      return { ok: true, message: targetType === 'c2c' ? '已发送给该对象' : '已发送到群' }
     } catch (e) {
       return { ok: false, message: e instanceof Error ? `发送失败：${e.message}` : '发送失败：网络错误' }
     }
@@ -85,13 +94,25 @@ export const qqConnector: Connector = {
     return items.map((g) => ({ id: g.group_openid, name: g.group_name || g.group_openid }))
   },
 
-  async fetchMessages(token: string, target: string): Promise<PlatformMessage[]> {
+  async fetchMessages(token: string, target: string, opts?: { targetType?: string }): Promise<PlatformMessage[]> {
+    const targetType = opts?.targetType ?? 'group'
+    if (targetType === 'c2c') {
+      throw new Error(
+        'QQ 私聊历史消息需经机器人网关实时接收，REST 接口不支持拉取。请复制对方发来的消息后，在「信息总结」中粘贴并总结。',
+      )
+    }
     const response = await fetch(
       `${QQ_API}/v2/groups/${encodeURIComponent(target)}/messages?limit=20`,
       { headers: { Authorization: `QQBot ${token}` } },
     )
+    if (!response.ok) {
+      throw new Error(`获取群消息失败：HTTP ${response.status}（QQ 群历史通常需经网关接收，REST 拉取可能为空）`)
+    }
     const data = await response.json() as MessagesResponse
     const items = data.data ?? []
+    if (items.length === 0) {
+      throw new Error('未拉取到消息（QQ 群历史通常需经网关接收，REST 拉取可能为空）。可粘贴消息后在「信息总结」中总结。')
+    }
     return items.map((m) => ({
       id: m.id,
       sender: m.author?.username ?? '未知',

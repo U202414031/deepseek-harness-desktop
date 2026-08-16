@@ -1,4 +1,4 @@
-import type { Connector, PlatformId, PlatformMeta } from './platform-types.ts'
+import type { Connector, PlatformId, PlatformMeta, ScheduleItem } from './platform-types.ts'
 import { feishuConnector } from './feishu.ts'
 import { wechatConnector } from './wechat.ts'
 import { qqConnector } from './qq.ts'
@@ -55,5 +55,39 @@ export function clearToolConfig(platform: PlatformId): void {
     localStorage.removeItem(`${CONFIG_PREFIX}:${platform}`)
   } catch {
     /* ignore */
+  }
+}
+
+const SCHEDULE_PREFIX = 'dsh-desktop-tools-schedule'
+
+/** @returns the persisted scheduled-message list for a platform (newest-at-last order). */
+export function loadToolSchedules(platform: PlatformId): ScheduleItem[] {
+  try {
+    const raw = localStorage.getItem(`${SCHEDULE_PREFIX}:${platform}`)
+    if (raw === null) return []
+    const parsed = JSON.parse(raw) as unknown
+    if (!Array.isArray(parsed)) return []
+    return parsed.filter(
+      (item): item is ScheduleItem =>
+        item !== null &&
+        typeof item === 'object' &&
+        typeof (item as ScheduleItem).id === 'string' &&
+        typeof (item as ScheduleItem).at === 'number',
+    )
+  } catch {
+    return []
+  }
+}
+
+/** Persist the scheduled-message list for a platform (empty array clears storage). */
+export function saveToolSchedules(platform: PlatformId, items: ScheduleItem[]): void {
+  try {
+    if (items.length === 0) {
+      localStorage.removeItem(`${SCHEDULE_PREFIX}:${platform}`)
+      return
+    }
+    localStorage.setItem(`${SCHEDULE_PREFIX}:${platform}`, JSON.stringify(items))
+  } catch {
+    /* storage unavailable — ignore */
   }
 }

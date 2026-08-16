@@ -348,6 +348,24 @@ a.dshDesktopApiLink.dshDesktopSecondaryButton { color: var(--dsh-desktop-fg); }
 .dshDesktopToolsMsgSender { font-size: 11px; font-weight: 600; color: var(--dsh-desktop-accent); }
 .dshDesktopToolsMsgText { font-size: 12px; color: var(--dsh-desktop-fg); white-space: pre-wrap; word-break: break-word; }
 .dshDesktopToolsInfo { font-size: 12px; color: #1f9d55; margin: 0; }
+
+/* ---- Tools: target type selector + scheduled send ---- */
+.dshDesktopToolsTypeRow { display: flex; gap: 6px; }
+.dshDesktopToolsTypeBtn { flex: 1 1 0; padding: 6px 4px; border: 1px solid var(--dsh-desktop-border); border-radius: 8px; background: var(--dsh-desktop-surface); color: var(--dsh-desktop-fg-muted); font-size: 12px; cursor: pointer; -webkit-app-region: no-drag; transition: border-color .15s, color .15s, background .15s; }
+.dshDesktopToolsTypeBtn[data-active] { font-weight: 600; color: var(--dsh-desktop-fg); background: var(--dsh-desktop-surface-2); border-color: var(--dsh-desktop-accent); }
+.dshDesktopToolsTimeInput { color-scheme: light; }
+.dshDesktopToolsSched { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.dshDesktopToolsSchedItem { display: flex; flex-direction: column; gap: 4px; padding: 7px 9px; border: 1px solid var(--dsh-desktop-border); border-radius: 9px; background: var(--dsh-desktop-surface-2); }
+.dshDesktopToolsSchedMain { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; font-size: 12px; }
+.dshDesktopToolsSchedTime { font-weight: 600; color: var(--dsh-desktop-fg); }
+.dshDesktopToolsSchedTarget { color: var(--dsh-desktop-accent); max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dshDesktopToolsSchedText { flex: 1 1 100%; color: var(--dsh-desktop-fg-muted); white-space: pre-wrap; word-break: break-word; }
+.dshDesktopToolsSchedSide { display: flex; align-items: center; gap: 6px; }
+.dshDesktopToolsBadge { font-size: 11px; padding: 1px 7px; border-radius: 999px; font-weight: 600; background: var(--dsh-desktop-surface); color: var(--dsh-desktop-fg-muted); }
+.dshDesktopToolsBadge[data-status="sent"] { color: #1f9d55; }
+.dshDesktopToolsBadge[data-status="failed"], .dshDesktopToolsBadge[data-status="missed"] { color: #d6455a; }
+.dshDesktopToolsBadge[data-status="pending"] { color: var(--dsh-desktop-accent); }
+.dshDesktopToolsSchedResult { font-size: 11px; color: var(--dsh-desktop-fg-muted); margin: 0; }
 `
 
 

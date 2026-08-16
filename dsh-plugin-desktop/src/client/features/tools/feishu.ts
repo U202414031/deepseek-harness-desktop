@@ -91,7 +91,7 @@ export const feishuConnector: Connector = {
     return data.tenant_access_token
   },
 
-  async sendMessage(token: string, target: string, text: string): Promise<SendResult> {
+  async sendMessage(token: string, target: string, text: string, _opts?: { targetType?: string }): Promise<SendResult> {
     try {
       const response = await fetch(`${FEISHU_BASE}/im/v1/messages?receive_id_type=chat_id`, {
         method: 'POST',
@@ -117,7 +117,7 @@ export const feishuConnector: Connector = {
     return (data.data?.items ?? []).map((c) => ({ id: c.chat_id, name: c.name || c.chat_id }))
   },
 
-  async fetchMessages(token: string, target: string): Promise<PlatformMessage[]> {
+  async fetchMessages(token: string, target: string, _opts?: { targetType?: string }): Promise<PlatformMessage[]> {
     const url = `${FEISHU_BASE}/im/v1/messages?container_id_type=chat&container_id=${encodeURIComponent(
       target,
     )}&page_size=20&sort_type=by_create_time_desc`

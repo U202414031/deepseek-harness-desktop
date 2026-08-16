@@ -45,14 +45,38 @@ export interface PlatformMeta {
   targetMode: 'select' | 'text'
   /** Label for the target control. */
   targetLabel: string
+  /** Optional sub-types of destination (e.g. group vs private). When present, the UI shows a type selector and `targetMode`/`targetLabel` act as fallbacks. */
+  targetTypes?: TargetTypeOption[]
   /** Optional caveat shown under the connection form. */
   note?: string
+}
+
+/** A scheduled outgoing message persisted locally and fired at `at` (epoch ms). */
+export interface ScheduleItem {
+  id: string
+  platform: PlatformId
+  target: string
+  targetType: string
+  text: string
+  at: number
+  status: 'pending' | 'sent' | 'failed' | 'missed'
+  result?: string
 }
 
 /** A selectable message destination (chat / group / user). */
 export interface PlatformTarget {
   id: string
   name: string
+}
+
+/** A kind of message destination a platform supports (e.g. group vs private chat). */
+export interface TargetTypeOption {
+  id: string
+  label: string
+  /** How the destination value is entered for this type. */
+  input: 'select' | 'text'
+  /** Placeholder for the text-input variant. */
+  placeholder?: string
 }
 
 /** A normalized inbound message. */
@@ -90,10 +114,10 @@ export interface Connector {
   meta: PlatformMeta
   /** Exchange credentials for a session token; throws a friendly Error on failure. */
   connect(values: Record<string, string>): Promise<string>
-  /** Send `text` to `target`; never throws (returns a {@link SendResult}). */
-  sendMessage(token: string, target: string, text: string): Promise<SendResult>
-  /** List available message targets. Only called when {@link PlatformMeta.targetMode} is 'select'. */
+  /** Send `text` to `target`; never throws (returns a {@link SendResult}). `opts.targetType` selects the destination kind. */
+  sendMessage(token: string, target: string, text: string, opts?: { targetType?: string }): Promise<SendResult>
+  /** List available message targets. Only called when the active target type's input is 'select'. */
   listTargets(token: string): Promise<PlatformTarget[]>
-  /** Pull recent messages for `target`. Only called when {@link PlatformMeta.supportsFetch} is true. */
-  fetchMessages(token: string, target: string): Promise<PlatformMessage[]>
+  /** Pull recent messages for `target`. Only called when {@link PlatformMeta.supportsFetch} is true. `opts.targetType` selects the destination kind. */
+  fetchMessages(token: string, target: string, opts?: { targetType?: string }): Promise<PlatformMessage[]>
 }

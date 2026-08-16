@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import type {
-  ConnStatus, PlatformId, PlatformMessage, PlatformTarget, ToolTask,
+  ConnStatus, PlatformId, PlatformMessage, PlatformTarget, ScheduleItem, ToolTask,
 } from './platform-types.ts'
 import {
-  CONNECTORS, PLATFORMS, clearToolConfig, loadToolConfig, saveToolConfig,
+  CONNECTORS, PLATFORMS, clearToolConfig, loadToolConfig, loadToolSchedules, saveToolConfig, saveToolSchedules,
 } from './registry.ts'
 import { loadTasks, newTaskId, saveTasks } from './tasks.ts'
 import { extractTasks, summarize } from './llm.ts'
@@ -15,10 +15,30 @@ const STATUS_LABEL: Record<ConnStatus, string> = {
   error: '连接错误',
 }
 
+const SCHED_STATUS_LABEL: Record<ScheduleItem['status'], string> = {
+  pending: '待发送',
+  sent: '已发送',
+  failed: '失败',
+  missed: '错过',
+}
+
+/** Module-scoped so timers survive re-renders; keyed by schedule id. */
+const timers = new Map<string, ReturnType<typeof setTimeout>>()
+const firedIds = new Set<string>()
+
+function formatTime(at: number): string {
+  try {
+    return new Date(at).toLocaleString()
+  } catch {
+    return String(at)
+  }
+}
+
 /**
  * Desktop-owned "外部工具" panel rendered in the left column. Lets the user
- * connect QQ / 微信 / 飞书, then send messages, pull recent messages, summarize
- * them with the configured DeepSeek key, and manage local tasks.
+ * connect QQ / 微信 / 飞书, then send messages (to groups or private chats),
+ * pull recent messages, summarize them with the configured DeepSeek key,
+ * schedule outgoing messages, and manage local tasks.
  */
 export function ToolsPanel(): JSX.Element {
   const [activeId, setActiveId] = useState<PlatformId>('feishu')
@@ -30,10 +50,14 @@ export function ToolsPanel(): JSX.Element {
   const [token, setToken] = useState<string | null>(null)
   const [targets, setTargets] = useState<PlatformTarget[]>([])
   const [targetId, setTargetId] = useState<string>('')
+  const [targetType, setTargetType] = useState<string>(() => meta.targetTypes?.[0]?.id ?? '')
   const [messages, setMessages] = useState<PlatformMessage[]>([])
   const [summary, setSummary] = useState<string>('')
   const [manualText, setManualText] = useState<string>('')
   const [tasks, setTasks] = useState<ToolTask[]>(() => loadTasks(activeId))
+  const [schedules, setSchedules] = useState<ScheduleItem[]>(() => loadToolSchedules(activeId))
+  const [schedTime, setSchedTime] = useState<string>('')
+  const [schedText, setSchedText] = useState<string>('')
 
   const [fieldError, setFieldError] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(null)
@@ -45,7 +69,60 @@ export function ToolsPanel(): JSX.Element {
   const [extracting, setExtracting] = useState(false)
   const [taskTitle, setTaskTitle] = useState('')
 
-  // Reset everything when switching platforms.
+  const currentType = meta.targetTypes?.find((t) => t.id === targetType)
+  const inputMode: 'select' | 'text' = currentType ? currentType.input : meta.targetMode
+  const effectiveTargetLabel = currentType ? currentType.label : meta.targetLabel
+  const targetPlaceholder = currentType?.placeholder ?? meta.targetLabel
+
+  const scheduleItem = (item: ScheduleItem): void => {
+    if (firedIds.has(item.id)) return
+    if (item.at <= Date.now()) {
+      setSchedules((prev) => {
+        const next = prev.map((s): ScheduleItem => (s.id === item.id ? { ...s, status: 'missed' } : s))
+        saveToolSchedules(item.platform, next)
+        return next
+      })
+      return
+    }
+    const handle = setTimeout(() => {
+      void fireSchedule(item)
+    }, item.at - Date.now())
+    timers.set(item.id, handle)
+  }
+
+  const fireSchedule = async (item: ScheduleItem): Promise<void> => {
+    if (firedIds.has(item.id)) return
+    firedIds.add(item.id)
+    const handle = timers.get(item.id)
+    if (handle !== undefined) {
+      clearTimeout(handle)
+      timers.delete(item.id)
+    }
+    try {
+      const cfg = loadToolConfig(item.platform)
+      const conn = CONNECTORS[item.platform]
+      const freshToken = await conn.connect(cfg)
+      const res = await conn.sendMessage(freshToken, item.target, item.text, { targetType: item.targetType })
+      setSchedules((prev) => {
+        const next = prev.map((s): ScheduleItem =>
+          s.id === item.id ? { ...s, status: res.ok ? 'sent' : 'failed', result: res.message } : s,
+        )
+        saveToolSchedules(item.platform, next)
+        return next
+      })
+      setInfo(`定时消息${res.ok ? '已发送' : '发送失败'}（${conn.meta.short} → ${item.target}）`)
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : '定时发送失败'
+      setSchedules((prev) => {
+        const next = prev.map((s): ScheduleItem => (s.id === item.id ? { ...s, status: 'failed', result: msg } : s))
+        saveToolSchedules(item.platform, next)
+        return next
+      })
+      setInfo(`定时消息发送失败：${msg}`)
+    }
+  }
+
+  // Reset everything when switching platforms, and re-arm pending schedules.
   useEffect(() => {
     const cfg = loadToolConfig(activeId)
     setValues(cfg)
@@ -58,6 +135,15 @@ export function ToolsPanel(): JSX.Element {
     setTasks(loadTasks(activeId))
     setFieldError(null)
     setInfo(null)
+    setTargetType(CONNECTORS[activeId].meta.targetTypes?.[0]?.id ?? '')
+    setSchedTime('')
+    setSchedText('')
+    const loaded = loadToolSchedules(activeId)
+    setSchedules(loaded)
+    loaded.forEach((item) => {
+      if (item.status === 'pending') scheduleItem(item)
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeId])
 
   // Persist tasks whenever they change for the active platform.
@@ -79,7 +165,7 @@ export function ToolsPanel(): JSX.Element {
       setToken(t)
       setStatus('connected')
       saveToolConfig(activeId, values)
-      if (meta.targetMode === 'select') {
+      if (inputMode === 'select') {
         try {
           setTargets(await connector.listTargets(t))
         } catch (e) {
@@ -120,11 +206,11 @@ export function ToolsPanel(): JSX.Element {
 
   const onSend = async () => {
     if (token === null) { setFieldError('请先连接。'); return }
-    if (targetId.trim().length === 0) { setFieldError(`请${meta.targetMode === 'select' ? '选择' : '填写'}${meta.targetLabel}。`); return }
+    if (targetId.trim().length === 0) { setFieldError(`请${inputMode === 'select' ? '选择' : '填写'}${effectiveTargetLabel}。`); return }
     if (sendText.trim().length === 0) { setFieldError('请输入要发送的内容。'); return }
     setSending(true)
     setFieldError(null)
-    const result = await connector.sendMessage(token, targetId, sendText)
+    const result = await connector.sendMessage(token, targetId, sendText, { targetType })
     setSending(false)
     setInfo(result.message)
     if (result.ok) setSendText('')
@@ -132,11 +218,11 @@ export function ToolsPanel(): JSX.Element {
 
   const onFetch = async () => {
     if (token === null) { setFieldError('请先连接。'); return }
-    if (targetId.trim().length === 0) { setFieldError(`请${meta.targetMode === 'select' ? '选择' : '填写'}${meta.targetLabel}。`); return }
+    if (targetId.trim().length === 0) { setFieldError(`请${inputMode === 'select' ? '选择' : '填写'}${effectiveTargetLabel}。`); return }
     setFetching(true)
     setFieldError(null)
     try {
-      setMessages(await connector.fetchMessages(token, targetId))
+      setMessages(await connector.fetchMessages(token, targetId, { targetType }))
       setSummary('')
       setInfo('已获取最近消息')
     } catch (e) {
@@ -195,11 +281,66 @@ export function ToolsPanel(): JSX.Element {
     setTasks((prev) => prev.filter((t) => t.id !== id))
   }
 
+  const onAddSchedule = () => {
+    if (targetId.trim().length === 0) { setFieldError(`请先${inputMode === 'select' ? '选择' : '填写'}${effectiveTargetLabel}。`); return }
+    if (schedText.trim().length === 0) { setFieldError('请输入定时发送的内容。'); return }
+    if (schedTime.trim().length === 0) { setFieldError('请选择发送时间。'); return }
+    const at = new Date(schedTime).getTime()
+    if (!Number.isFinite(at) || at <= Date.now()) { setFieldError('发送时间需晚于当前时间。'); return }
+    const item: ScheduleItem = {
+      id: newTaskId(),
+      platform: activeId,
+      target: targetId,
+      targetType,
+      text: schedText,
+      at,
+      status: 'pending',
+    }
+    setSchedules((prev) => {
+      const next = [...prev, item]
+      saveToolSchedules(activeId, next)
+      return next
+    })
+    scheduleItem(item)
+    setSchedText('')
+    setSchedTime('')
+    setInfo(`已加入定时发送（${formatTime(at)}）`)
+  }
+
+  const onRemoveSchedule = (id: string) => {
+    const handle = timers.get(id)
+    if (handle !== undefined) {
+      clearTimeout(handle)
+      timers.delete(id)
+    }
+    firedIds.delete(id)
+    setSchedules((prev) => {
+      const next = prev.filter((s) => s.id !== id)
+      saveToolSchedules(activeId, next)
+      return next
+    })
+  }
+
+  const onRetrySchedule = (item: ScheduleItem) => {
+    if (item.at <= Date.now()) { setFieldError('该定时已过期，无法重试，请删除后重新添加。'); return }
+    setSchedules((prev) => {
+      const next = prev.map(
+        (s): ScheduleItem =>
+          s.id === item.id
+            ? { id: s.id, platform: s.platform, target: s.target, targetType: s.targetType, text: s.text, at: s.at, status: 'pending' }
+            : s,
+      )
+      saveToolSchedules(activeId, next)
+      return next
+    })
+    scheduleItem({ ...item, status: 'pending' })
+  }
+
   return (
     <div className="dshDesktopTools">
       <header className="dshDesktopFeatureHeader">
         <h2 className="dshDesktopFeatureTitle">外部工具</h2>
-        <p className="dshDesktopFeatureSubtitle">接入 QQ / 微信 / 飞书，发送消息、获取与总结信息、管理任务。凭证仅保存在本机。</p>
+        <p className="dshDesktopFeatureSubtitle">接入 QQ / 微信 / 飞书，发送消息、获取与总结信息、定时发送、管理任务。凭证仅保存在本机。</p>
       </header>
 
       <div className="dshDesktopToolsTabs">
@@ -251,9 +392,25 @@ export function ToolsPanel(): JSX.Element {
       </div>
 
       <div className="dshDesktopToolsCard">
+        {meta.targetTypes !== undefined && meta.targetTypes.length > 0 && (
+          <div className="dshDesktopToolsTypeRow">
+            {meta.targetTypes.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                className="dshDesktopToolsTypeBtn"
+                data-active={targetType === t.id || undefined}
+                onClick={() => { setTargetType(t.id) }}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        )}
+
         <label className="dshDesktopSkinField">
-          <span>{meta.targetLabel}</span>
-          {meta.targetMode === 'select' ? (
+          <span>{effectiveTargetLabel}</span>
+          {inputMode === 'select' ? (
             <select
               className="dshDesktopSearchInput"
               value={targetId}
@@ -269,7 +426,7 @@ export function ToolsPanel(): JSX.Element {
               type="text"
               className="dshDesktopSearchInput"
               value={targetId}
-              placeholder={meta.targetLabel}
+              placeholder={targetPlaceholder}
               onChange={(event) => { setTargetId(event.target.value) }}
             />
           )}
@@ -289,8 +446,57 @@ export function ToolsPanel(): JSX.Element {
 
         {meta.supportsFetch && (
           <button type="button" className="dshDesktopSecondaryButton dshDesktopToolsWideBtn" onClick={onFetch} disabled={fetching || token === null}>
-            {fetching ? '获取中…' : '获取最近消息'}
+            {fetching ? '获取中…' : `获取${effectiveTargetLabel}消息`}
           </button>
+        )}
+      </div>
+
+      <div className="dshDesktopToolsCard">
+        <h3 className="dshDesktopToolsSection">定时发送</h3>
+        <label className="dshDesktopSkinField">
+          <span>发送时间</span>
+          <input
+            type="datetime-local"
+            className="dshDesktopSearchInput dshDesktopToolsTimeInput"
+            value={schedTime}
+            onChange={(event) => { setSchedTime(event.target.value) }}
+          />
+        </label>
+        <div className="dshDesktopToolsSend">
+          <textarea
+            className="dshDesktopSearchInput dshDesktopToolsTextarea"
+            value={schedText}
+            placeholder={`到「${effectiveTargetLabel}」的定时内容…`}
+            onChange={(event) => { setSchedText(event.target.value) }}
+          />
+          <button type="button" className="dshDesktopPrimaryButton" onClick={onAddSchedule} disabled={token === null}>
+            加入定时
+          </button>
+        </div>
+        {schedules.length === 0 ? (
+          <p className="dshDesktopToolsNote">暂无定时任务。选择目标与时间后加入，到点会自动重连并发送（即使你已断开，也会用已保存配置自动连接）。</p>
+        ) : (
+          <ul className="dshDesktopToolsSched">
+            {schedules.map((s) => (
+              <li key={s.id} className="dshDesktopToolsSchedItem">
+                <div className="dshDesktopToolsSchedMain">
+                  <span className="dshDesktopToolsSchedTime">{formatTime(s.at)}</span>
+                  <span className="dshDesktopToolsSchedTarget" title={s.target}>→ {s.target}</span>
+                  <span className="dshDesktopToolsSchedText">{s.text}</span>
+                </div>
+                <div className="dshDesktopToolsSchedSide">
+                  <b className="dshDesktopToolsBadge" data-status={s.status}>{SCHED_STATUS_LABEL[s.status]}</b>
+                  {(s.status === 'failed' || s.status === 'missed') && (
+                    <button type="button" className="dshDesktopToolsTaskDel" title="重试" onClick={() => { onRetrySchedule(s) }}>↻</button>
+                  )}
+                  <button type="button" className="dshDesktopToolsTaskDel" title="删除" onClick={() => { onRemoveSchedule(s.id) }}>×</button>
+                </div>
+                {s.result !== undefined && s.status !== 'sent' && (
+                  <p className="dshDesktopToolsSchedResult">{s.result}</p>
+                )}
+              </li>
+            ))}
+          </ul>
         )}
       </div>
 
