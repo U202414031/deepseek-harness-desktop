@@ -259,14 +259,21 @@ html:has([aria-modal="true"]) .dshDesktopSidebarSurface::before { -webkit-app-re
 
 /* ---- Artifacts / code right panel ---- */
 .dshDesktopFrame[data-desktop-platform="darwin"] .dshDesktopArtifactsSurface { grid-row: 1 / -1; }
-.dshDesktopArtifactsSurface { grid-column: 4; grid-row: 1; min-width: 0; min-height: 0; overflow: hidden; background: var(--dsh-desktop-bg); border-left: 1px solid var(--dsh-desktop-border); display: flex; flex-direction: row; justify-content: flex-end; }
-.dshDesktopArtifactsPanel { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--dsh-desktop-bg); }
-.dshDesktopArtifactsRail { flex: 0 0 56px; display: flex; flex-direction: column; gap: 6px; padding: 10px 0; align-items: center; background: var(--dsh-desktop-surface); border-left: 1px solid var(--dsh-desktop-border); }
-.dshDesktopArtifactsTabs { display: flex; gap: 4px; padding: 8px 12px 0; }
-.dshDesktopArtifactsTab { font-size: 12px; padding: 6px 10px; border: 1px solid transparent; border-bottom: none; border-radius: 8px 8px 0 0; background: transparent; color: var(--dsh-desktop-fg-muted); cursor: pointer; -webkit-app-region: no-drag; }
-.dshDesktopArtifactsTab[aria-selected="true"] { color: var(--dsh-desktop-fg); background: var(--dsh-desktop-surface); }
+.dshDesktopArtifactsSurface { grid-column: 4; grid-row: 1; min-width: 0; min-height: 0; overflow: hidden; background: var(--dsh-desktop-surface); border-left: 1px solid var(--dsh-desktop-border); box-shadow: var(--dsh-desktop-sidebar-shadow, -8px 0 24px rgba(0, 0, 0, 0.12)); display: flex; flex-direction: column; }
+.dshDesktopArtifactsPanel { flex: 1 1 auto; min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+.dshDesktopArtifactsTabs { display: flex; gap: 6px; padding: 10px 12px; }
+.dshDesktopArtifactsTab { font-size: 12px; padding: 6px 12px; border: 1px solid var(--dsh-desktop-border); border-radius: 999px; background: var(--dsh-desktop-surface); color: var(--dsh-desktop-fg-muted); cursor: pointer; -webkit-app-region: no-drag; }
+.dshDesktopArtifactsTab[aria-selected="true"] { background: var(--dsh-desktop-accent); color: var(--dsh-desktop-accent-fg); border-color: var(--dsh-desktop-accent); }
 .dshDesktopArtifactsBody { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 10px 12px; }
 .dshDesktopArtifactsHeader { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.dshDesktopArtifactsHeader__buttons { display: flex; align-items: center; gap: 2px; margin-left: auto; }
+.dshDesktopIconButton { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--dsh-desktop-fg-muted); cursor: pointer; -webkit-app-region: no-drag; }
+.dshDesktopIconButton:hover { background: var(--dsh-desktop-surface-2); color: var(--dsh-desktop-fg); }
+.dshDesktopIconButton:active { background: var(--dsh-desktop-accent); color: var(--dsh-desktop-accent-fg); }
+.dshDesktopIconButton svg { width: 18px; height: 18px; display: block; }
+.dshDesktopArtifactsReopen { position: absolute; top: 50%; right: 0; transform: translateY(-50%); z-index: 40; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 52px; box-sizing: border-box; border: 1px solid var(--dsh-desktop-border); border-right: none; border-radius: 10px 0 0 10px; background: var(--dsh-desktop-surface); color: var(--dsh-desktop-fg-muted); cursor: pointer; -webkit-app-region: no-drag; }
+.dshDesktopArtifactsReopen:hover { background: var(--dsh-desktop-surface-2); color: var(--dsh-desktop-fg); }
+.dshDesktopArtifactsReopen svg { width: 18px; height: 18px; display: block; }
 .dshDesktopEmptyState { color: var(--dsh-desktop-fg-muted); font-size: 13px; padding: 8px; }
 .dshDesktopCodeList, .dshDesktopArtifactList { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .dshDesktopCodeCard, .dshDesktopArtifactCard { border: 1px solid var(--dsh-desktop-border); border-radius: 10px; overflow: hidden; background: var(--dsh-desktop-surface); }

@@ -69,10 +69,8 @@ export function computeDesktopColumns(
   const sidebarWidth = sidebar === 0 ? collapsedWidth : clamp(sidebar, SIDEBAR_MIN, SIDEBAR_MAX)
   const preferredDetails = details === 0 ? 0 : clamp(details, DETAILS_MIN, DETAILS_MAX)
   const artifactsOpen = artifacts > 0
-  const preferredArtifactsContent = artifactsOpen ? clamp(artifacts, ARTIFACTS_MIN, ARTIFACTS_MAX) : 0
-  // The artifacts column always reserves the rail, mirroring the sidebar rail so the
-  // right-edge controls stay reachable even when the panel content is closed.
-  const preferredArtifacts = ARTIFACTS_RAIL + preferredArtifactsContent
+  const preferredArtifacts = artifactsOpen ? clamp(artifacts, ARTIFACTS_MIN, ARTIFACTS_MAX) : 0
+  // Fits with the requested artifacts width: render the right docked panel.
   if (sidebarWidth + preferredDetails + preferredArtifacts + CENTER_MIN <= viewport) {
     return {
       sidebar: sidebarWidth,
@@ -81,24 +79,18 @@ export function computeDesktopColumns(
       artifacts: preferredArtifacts,
     }
   }
-  // Shrink artifacts content to its minimum while keeping the rail visible.
-  const minArtifacts = ARTIFACTS_RAIL + ARTIFACTS_MIN
-  if (artifactsOpen && sidebarWidth + preferredDetails + minArtifacts + CENTER_MIN <= viewport) {
-    return { sidebar: sidebarWidth, center: CENTER_MIN, details: preferredDetails, artifacts: minArtifacts }
+  // Shrink the artifacts panel to its minimum before closing it.
+  if (artifactsOpen && sidebarWidth + preferredDetails + ARTIFACTS_MIN + CENTER_MIN <= viewport) {
+    return { sidebar: sidebarWidth, center: CENTER_MIN, details: preferredDetails, artifacts: ARTIFACTS_MIN }
   }
-  // Drop artifacts content entirely, keeping only the rail.
-  const railOnly = ARTIFACTS_RAIL
-  if (sidebarWidth + preferredDetails + railOnly + CENTER_MIN <= viewport) {
-    return { sidebar: sidebarWidth, center: CENTER_MIN, details: preferredDetails, artifacts: railOnly }
-  }
-  // Shrink details before giving up on the artifacts rail.
+  // Drop artifacts entirely before shrinking details.
   const reducedDetails = preferredDetails === 0
     ? 0
-    : Math.max(DETAILS_MIN, viewport - sidebarWidth - railOnly - CENTER_MIN)
-  if (sidebarWidth + reducedDetails + railOnly + CENTER_MIN <= viewport) {
-    return { sidebar: sidebarWidth, center: CENTER_MIN, details: reducedDetails, artifacts: railOnly }
+    : Math.max(DETAILS_MIN, viewport - sidebarWidth - CENTER_MIN)
+  if (sidebarWidth + reducedDetails + CENTER_MIN <= viewport) {
+    return { sidebar: sidebarWidth, center: CENTER_MIN, details: reducedDetails, artifacts: 0 }
   }
-  return { sidebar: sidebarWidth, center: Math.max(0, viewport - sidebarWidth - railOnly), details: 0, artifacts: railOnly }
+  return { sidebar: sidebarWidth, center: Math.max(0, viewport - sidebarWidth), details: 0, artifacts: 0 }
 }
 
 function clamp(value: number, min: number, max: number): number {

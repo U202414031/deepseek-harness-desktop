@@ -3,7 +3,7 @@ import type { PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-
 import type {} from './contracts.ts'
 import type { DesktopClientPlatform } from './environment.ts'
 import {
-  ARTIFACTS_RAIL, computeDesktopColumns, DesktopLayoutState, MACOS_SIDEBAR_COLLAPSED,
+  computeDesktopColumns, DesktopLayoutState, MACOS_SIDEBAR_COLLAPSED,
   SIDEBAR_AUTO_COLLAPSE, SIDEBAR_COLLAPSED, SIDEBAR_DEFAULT,
 } from './layout-state.ts'
 
@@ -132,37 +132,21 @@ export function AdvancedFrame({ layout, platform, renderSlot, useSessions }: Adv
       </aside>
       <main className="dshDesktopConversationSurface">{renderSlot('conversation', {})}</main>
       <aside className="dshDesktopDetailsSurface">{renderSlot('details', {})}</aside>
-      <aside className="dshDesktopArtifactsSurface">
-        {panels.artifacts > 0 && (
+      {columns.artifacts > 0 ? (
+        <aside className="dshDesktopArtifactsSurface">
           <div className="dshDesktopArtifactsPanel">{renderSlot('artifacts', {})}</div>
-        )}
-        <nav className="dshDesktopArtifactsRail" aria-label="产物面板控制">
-          {panels.artifacts > 0 && (
-            <button
-              type="button"
-              className="dshDesktopRailButton"
-              data-active={panels.artifactsExpanded || undefined}
-              title={panels.artifactsExpanded ? '还原面板宽度' : '放大面板'}
-              aria-label={panels.artifactsExpanded ? '还原面板宽度' : '放大面板'}
-              aria-pressed={panels.artifactsExpanded}
-              onClick={() => { layout.toggleArtifactsExpanded() }}
-            >
-              {panels.artifactsExpanded ? '还原' : '放大'}
-            </button>
-          )}
-          <div className="dshDesktopRailDivider" aria-hidden="true" />
-          <button
-            type="button"
-            className="dshDesktopRailButton"
-            title={panels.artifacts > 0 ? '收起产物面板' : '展开产物面板'}
-            aria-label={panels.artifacts > 0 ? '收起产物面板' : '展开产物面板'}
-            aria-pressed={panels.artifacts > 0}
-            onClick={() => { layout.toggleArtifacts() }}
-          >
-            {panels.artifacts > 0 ? '«' : '»'}
-          </button>
-        </nav>
-      </aside>
+        </aside>
+      ) : (
+        <button
+          type="button"
+          className="dshDesktopArtifactsReopen"
+          title="展开产物面板"
+          aria-label="展开产物面板"
+          onClick={() => { layout.openArtifacts() }}
+        >
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10 4l-4 4 4 4" /></svg>
+        </button>
+      )}
       <div className="dshDesktopOverlay" data-shell-overlay>
         {renderSlot('shell.overlay', {})}
       </div>
@@ -182,11 +166,11 @@ export function AdvancedFrame({ layout, platform, renderSlot, useSessions }: Adv
           onResize={(width) => { layout.setDetails(width) }}
         />
       )}
-      {panels.artifacts > 0 && (
+      {columns.artifacts > 0 && (
         <ResizeHandle
           side="artifacts"
           left={viewport - columns.artifacts}
-          size={columns.artifacts - ARTIFACTS_RAIL}
+          size={columns.artifacts}
           onResize={(width) => { layout.setArtifacts(width) }}
         />
       )}

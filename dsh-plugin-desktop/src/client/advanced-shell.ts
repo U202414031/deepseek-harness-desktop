@@ -78,5 +78,5 @@ export function applyAdvancedShell(ctx: ClientContext, environment: DesktopClien
   // root declaration so the child seats already exist).
   ctx.effect(() => ctx.slots.register({ name: 'sidebar.marketplace' }, MarketplacePanel), 'desktop: marketplace surface')
   ctx.effect(() => ctx.slots.register({ name: 'sidebar.skins' }, SkinsPanel), 'desktop: skins surface')
-  ctx.effect(() => ctx.slots.register({ name: 'artifacts' }, ArtifactsPanel), 'desktop: artifacts surface')
+  ctx.effect(() => ctx.slots.register({ name: 'artifacts', inject: () => ({ layout: desktopLayout }) }, ArtifactsPanel), 'desktop: artifacts surface')
 }
