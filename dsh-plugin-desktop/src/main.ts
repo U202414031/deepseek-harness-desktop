@@ -72,7 +72,10 @@ function notifySkippedOptionalEntries(
 /** Start one Electron process and leave lifetime to the mounted desktop plugin. */
 async function start(): Promise<void> {
   app.setName(PRODUCT_NAME)
-  if (!app.requestSingleInstanceLock()) {
+  // Packaged builds keep a single instance so re-launching focuses the live
+  // window. Dev builds skip the lock so every `yarn dev` opens a fresh window
+  // instead of being swallowed by a stale previous process.
+  if (app.isPackaged && !app.requestSingleInstanceLock()) {
     app.quit()
     return
   }
