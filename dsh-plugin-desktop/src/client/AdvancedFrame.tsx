@@ -134,7 +134,7 @@ export function AdvancedFrame({ layout, platform, renderSlot, useSessions }: Adv
       <main className="dshDesktopConversationSurface">{renderSlot('conversation', {})}</main>
       <aside className="dshDesktopDetailsSurface">{renderSlot('details', {})}</aside>
       {columns.artifacts > 0 && (
-        <aside className="dshDesktopArtifactsSurface">{renderSlot('artifacts', {})}</aside>
+        <aside className="dshDesktopArtifactsSurface">{renderSlot('artifacts', { layout })}</aside>
       )}
       {columns.artifacts === 0 && (
         <button

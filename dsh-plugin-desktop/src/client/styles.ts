@@ -75,6 +75,63 @@ html:has([aria-modal="true"]) .dshDesktopSidebarSurface::before { -webkit-app-re
 /* Reveal the skinned conversation backdrop through the upstream chat content. */
 :root[data-skin] .dshDesktopConversationSurface > * { background-color: transparent !important; }
 
+/* The product chrome (conversation, work-context, chat bubbles, cards, code
+   blocks, scrollbars, toasts) reads the framework's --dsw-alias-* tokens, which
+   the theme presenter writes as inline styles on <body>. Re-declare them on
+   <body> itself with !important so the active skin recolors the entire
+   interface — not only the desktop-owned columns. Every skin defines the
+   --dsh-desktop-* tokens we map onto, so the coverage is uniform. */
+:root[data-skin] body {
+  --dsw-alias-bg-base: var(--dsh-desktop-bg) !important;
+  --dsw-alias-bg-layer-1: var(--dsh-desktop-surface) !important;
+  --dsw-alias-bg-layer-2: var(--dsh-desktop-surface) !important;
+  --dsw-alias-bg-layer-3: var(--dsh-desktop-surface-2) !important;
+  --dsw-alias-bg-overlay: var(--dsh-desktop-surface-2) !important;
+  --dsw-alias-bg-elevated: var(--dsh-desktop-surface) !important;
+  --dsw-alias-bg-module-platform: var(--dsh-desktop-surface) !important;
+  --dsw-alias-bg-multi-select: var(--dsh-desktop-surface-2) !important;
+  --dsw-alias-bg-skeleton: var(--dsh-desktop-surface-2) !important;
+  --dsw-alias-border-l1: var(--dsh-desktop-border) !important;
+  --dsw-alias-border-l2: var(--dsh-desktop-border) !important;
+  --dsw-alias-border-l3: var(--dsh-desktop-border) !important;
+  --dsw-alias-border-l4: var(--dsh-desktop-border) !important;
+  --dsw-alias-fg-base: var(--dsh-desktop-fg) !important;
+  --dsw-alias-fg-muted: var(--dsh-desktop-fg-muted) !important;
+  --dsw-alias-label-primary: var(--dsh-desktop-fg) !important;
+  --dsw-alias-label-secondary: var(--dsh-desktop-fg-muted) !important;
+  --dsw-alias-label-tertiary: var(--dsh-desktop-fg-muted) !important;
+  --dsw-alias-label-caption: var(--dsh-desktop-fg-muted) !important;
+  --dsw-alias-label-dimmed: var(--dsh-desktop-fg-muted) !important;
+  --dsw-alias-brand-primary: var(--dsh-desktop-accent) !important;
+  --dsw-alias-brand-text: var(--dsh-desktop-accent-fg, #ffffff) !important;
+  --dsw-alias-accent: var(--dsh-desktop-accent) !important;
+  --dsw-alias-accent-fg: var(--dsh-desktop-accent-fg, #ffffff) !important;
+  --dsw-alias-interactive-bg-hover: var(--dsh-desktop-surface-2) !important;
+  --dsw-alias-interactive-bg-hover-solid: var(--dsh-desktop-surface-2) !important;
+  --dsw-alias-interactive-bg-active: var(--dsh-desktop-surface-2) !important;
+  --dsw-alias-interactive-bg-hover-accent: var(--dsh-desktop-surface-2) !important;
+  --dsw-alias-state-business-primary: var(--dsh-desktop-accent) !important;
+  --dsw-alias-state-business-tertiary: var(--dsh-desktop-surface-2) !important;
+  --dsw-alias-button-primary-fill: var(--dsh-desktop-accent) !important;
+  --dsw-alias-button-primary-hover: var(--dsh-desktop-accent) !important;
+  --dsw-alias-button-primary-dimmed: var(--dsh-desktop-surface-2) !important;
+  --dsw-alias-button-elevated-fill: var(--dsh-desktop-surface) !important;
+  --dsw-alias-button-floating-fill: var(--dsh-desktop-surface) !important;
+  --dsw-alias-button-floating-hover: var(--dsh-desktop-surface-2) !important;
+  --dsw-alias-markdown-code-block: var(--dsh-desktop-code-bg) !important;
+  --dsw-alias-markdown-code-block-banner: var(--dsh-desktop-code-bg) !important;
+  --dsw-alias-markdown-code-segment-unselected: var(--dsh-desktop-code-bg) !important;
+  --dsw-alias-markdown-inline-code: var(--dsh-desktop-code-bg) !important;
+  --dsw-alias-markdown-tag: var(--dsh-desktop-surface-2) !important;
+  --dsw-alias-scrollbar-bg-l1: var(--dsh-desktop-surface-2) !important;
+  --dsw-alias-scrollbar-bg-l2: var(--dsh-desktop-surface-2) !important;
+  --dsw-alias-scrollbar-hover-l1: var(--dsh-desktop-border) !important;
+  --dsw-alias-scrollbar-hover-l2: var(--dsh-desktop-border) !important;
+  --dsw-alias-tooltip-bg: var(--dsh-desktop-surface) !important;
+  --dsw-alias-toast-bg: var(--dsh-desktop-surface) !important;
+  --dsw-alias-menu: var(--dsh-desktop-surface) !important;
+}
+
 /* ---- Left navigation rail + switchable panel column ---- */
 .dshDesktopSidebarSurface { display: flex; flex-direction: row; }
 .dshDesktopSidebarRail { flex: 0 0 56px; display: flex; flex-direction: column; gap: 6px; padding: 10px 0; align-items: center; background: var(--dsh-desktop-surface); border-right: 1px solid var(--dsh-desktop-border); }
