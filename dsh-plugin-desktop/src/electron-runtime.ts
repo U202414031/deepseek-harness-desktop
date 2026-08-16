@@ -457,6 +457,14 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
     const show = (): void => { this.show() }
     const close = (event: Electron.Event): void => {
       if (this.quitting) return
+      // In dev (unpackaged) builds, closing the window fully quits so the next
+      // `yarn dev` always boots a fresh process. Packaged builds keep running in
+      // the tray when the window is closed, which is the expected behaviour.
+      if (!app.isPackaged) {
+        event.preventDefault()
+        spec.requestQuit(0)
+        return
+      }
       event.preventDefault()
       window.hide()
     }
