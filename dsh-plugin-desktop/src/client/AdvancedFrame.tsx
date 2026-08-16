@@ -3,7 +3,7 @@ import type { PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-
 import type {} from './contracts.ts'
 import type { DesktopClientPlatform } from './environment.ts'
 import {
-  computeDesktopColumns, DesktopLayoutState, MACOS_SIDEBAR_COLLAPSED,
+  ARTIFACTS_RAIL, computeDesktopColumns, DesktopLayoutState, MACOS_SIDEBAR_COLLAPSED,
   SIDEBAR_AUTO_COLLAPSE, SIDEBAR_COLLAPSED, SIDEBAR_DEFAULT,
 } from './layout-state.ts'
 
@@ -132,21 +132,21 @@ export function AdvancedFrame({ layout, platform, renderSlot, useSessions }: Adv
       </aside>
       <main className="dshDesktopConversationSurface">{renderSlot('conversation', {})}</main>
       <aside className="dshDesktopDetailsSurface">{renderSlot('details', {})}</aside>
-      {columns.artifacts > 0 ? (
-        <aside className="dshDesktopArtifactsSurface">
+      <aside className="dshDesktopArtifactsSurface" data-open={panels.artifacts > 0 || undefined}>
+        {panels.artifacts > 0 ? (
           <div className="dshDesktopArtifactsPanel">{renderSlot('artifacts', {})}</div>
-        </aside>
-      ) : (
-        <button
-          type="button"
-          className="dshDesktopArtifactsReopen"
-          title="展开产物面板"
-          aria-label="展开产物面板"
-          onClick={() => { layout.openArtifacts() }}
-        >
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10 4l-4 4 4 4" /></svg>
-        </button>
-      )}
+        ) : (
+          <button
+            type="button"
+            className="dshDesktopArtifactsReopen"
+            title="展开产物面板"
+            aria-label="展开产物面板"
+            onClick={() => { layout.openArtifacts() }}
+          >
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10 4l-4 4 4 4" /></svg>
+          </button>
+        )}
+      </aside>
       <div className="dshDesktopOverlay" data-shell-overlay>
         {renderSlot('shell.overlay', {})}
       </div>
@@ -166,7 +166,7 @@ export function AdvancedFrame({ layout, platform, renderSlot, useSessions }: Adv
           onResize={(width) => { layout.setDetails(width) }}
         />
       )}
-      {columns.artifacts > 0 && (
+      {columns.artifacts > ARTIFACTS_RAIL && (
         <ResizeHandle
           side="artifacts"
           left={viewport - columns.artifacts}

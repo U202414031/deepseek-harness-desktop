@@ -271,7 +271,7 @@ html:has([aria-modal="true"]) .dshDesktopSidebarSurface::before { -webkit-app-re
 .dshDesktopIconButton:hover { background: var(--dsh-desktop-surface-2); color: var(--dsh-desktop-fg); }
 .dshDesktopIconButton:active { background: var(--dsh-desktop-accent); color: var(--dsh-desktop-accent-fg); }
 .dshDesktopIconButton svg { width: 18px; height: 18px; display: block; }
-.dshDesktopArtifactsReopen { position: absolute; top: 50%; right: 0; transform: translateY(-50%); z-index: 40; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 52px; box-sizing: border-box; border: 1px solid var(--dsh-desktop-border); border-right: none; border-radius: 10px 0 0 10px; background: var(--dsh-desktop-surface); color: var(--dsh-desktop-fg-muted); cursor: pointer; -webkit-app-region: no-drag; }
+.dshDesktopArtifactsReopen { display: inline-flex; align-items: center; justify-content: center; width: 100%; height: 100%; border: 0; background: transparent; color: var(--dsh-desktop-fg-muted); cursor: pointer; -webkit-app-region: no-drag; }
 .dshDesktopArtifactsReopen:hover { background: var(--dsh-desktop-surface-2); color: var(--dsh-desktop-fg); }
 .dshDesktopArtifactsReopen svg { width: 18px; height: 18px; display: block; }
 .dshDesktopEmptyState { color: var(--dsh-desktop-fg-muted); font-size: 13px; padding: 8px; }
