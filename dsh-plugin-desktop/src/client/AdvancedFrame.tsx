@@ -17,7 +17,7 @@ export interface AdvancedFrameInjected {
 
 /** Full advanced root slot props. */
 export type AdvancedFrameProps = PropsRuntime<'root'>
-  & PropsRenderSlots<'sidebar' | 'conversation' | 'details' | 'sidebar.marketplace' | 'sidebar.skins' | 'sidebar.api' | 'artifacts' | 'shell.overlay'>
+  & PropsRenderSlots<'sidebar' | 'conversation' | 'details' | 'sidebar.marketplace' | 'sidebar.skins' | 'sidebar.api' | 'desktop.model-monitor' | 'artifacts' | 'shell.overlay'>
   & AdvancedFrameInjected
 
 /** Desktop-owned transparent frame around the unchanged product surfaces. */
@@ -145,6 +145,7 @@ export function AdvancedFrame({ layout, platform, renderSlot, useSessions }: Adv
         </div>
       </aside>
       <main className="dshDesktopConversationSurface">{renderSlot('conversation', {})}</main>
+      {renderSlot('desktop.model-monitor', {})}
       <aside className="dshDesktopDetailsSurface">{renderSlot('details', {})}</aside>
       <aside className="dshDesktopArtifactsSurface" data-open={panels.artifacts > 0 || undefined}>
         {panels.artifacts > 0 ? (

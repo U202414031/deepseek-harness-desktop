@@ -1,44 +1,42 @@
+import type { ProviderSpec } from './provider-config.ts'
+
 /**
- * Local storage + network helpers for the user-owned DeepSeek API key.
- *
- * The key is kept only in the renderer's localStorage (this is a local desktop
- * client, not a shared service). Balance is queried directly against the
- * DeepSeek REST API using the user's own key.
+ * Local storage of user-owned API keys, kept per provider so the panel can show
+ * the right key for whichever model the user is currently running. Keys live
+ * only in the renderer's localStorage — this is a local desktop client.
  */
+const API_KEY_PREFIX = 'dsh-desktop-api-key'
 
-const API_KEY_STORAGE = 'dsh-desktop-api-key'
-const DEEPSEEK_BASE = 'https://api.deepseek.com'
-
-/** @returns the saved API key, or an empty string when none is stored. */
-export function getApiKey(): string {
+/** @returns the saved API key for a provider, or an empty string when none is stored. */
+export function getApiKey(providerId: string): string {
   try {
-    return localStorage.getItem(API_KEY_STORAGE) ?? ''
+    return localStorage.getItem(`${API_KEY_PREFIX}:${providerId}`) ?? ''
   } catch {
     return ''
   }
 }
 
-/** Persist the API key (empty input clears it). */
-export function setApiKey(key: string): void {
+/** Persist the API key for a provider (empty input clears it). */
+export function setApiKey(providerId: string, key: string): void {
   try {
     const trimmed = key.trim()
-    if (trimmed.length === 0) localStorage.removeItem(API_KEY_STORAGE)
-    else localStorage.setItem(API_KEY_STORAGE, trimmed)
+    if (trimmed.length === 0) localStorage.removeItem(`${API_KEY_PREFIX}:${providerId}`)
+    else localStorage.setItem(`${API_KEY_PREFIX}:${providerId}`, trimmed)
   } catch {
     /* storage unavailable — ignore */
   }
 }
 
-/** Remove any stored API key. */
-export function clearApiKey(): void {
+/** Remove any stored API key for a provider. */
+export function clearApiKey(providerId: string): void {
   try {
-    localStorage.removeItem(API_KEY_STORAGE)
+    localStorage.removeItem(`${API_KEY_PREFIX}:${providerId}`)
   } catch {
     /* ignore */
   }
 }
 
-/** One currency-denominated balance line returned by the DeepSeek API. */
+/** One currency-denominated balance line returned by a provider's balance API. */
 export interface BalanceInfo {
   currency: string
   totalBalance: string
@@ -46,18 +44,23 @@ export interface BalanceInfo {
   toppedUpBalance: string
 }
 
-/** Normalized balance response. */
+/** Normalized balance response for a specific provider. */
 export interface BalanceResult {
+  providerId: string
   available: boolean
   infos: BalanceInfo[]
 }
 
 /**
- * Query the DeepSeek account balance for the given key.
- * @throws when the request fails or returns a non-OK status.
+ * Query a provider's account balance for the given key.
+ * @throws when the provider has no key-authenticated balance endpoint, the
+ *         request fails, or it returns a non-OK status.
  */
-export async function fetchBalance(apiKey: string): Promise<BalanceResult> {
-  const response = await fetch(`${DEEPSEEK_BASE}/user/balance`, {
+export async function fetchBalance(spec: ProviderSpec, apiKey: string): Promise<BalanceResult> {
+  if (!spec.balanceSupported || spec.balancePath.length === 0) {
+    throw new Error(`${spec.label} 暂不支持通过 API Key 直接查询余额，请前往其控制台查看与充值。`)
+  }
+  const response = await fetch(`${spec.baseUrl}${spec.balancePath}`, {
     method: 'GET',
     headers: { Authorization: `Bearer ${apiKey.trim()}` },
   })
@@ -79,5 +82,5 @@ export async function fetchBalance(apiKey: string): Promise<BalanceResult> {
     grantedBalance: String(b.granted_balance ?? ''),
     toppedUpBalance: String(b.topped_up_balance ?? ''),
   }))
-  return { available: data.is_available ?? infos.length > 0, infos }
+  return { providerId: spec.id, available: data.is_available ?? infos.length > 0, infos }
 }

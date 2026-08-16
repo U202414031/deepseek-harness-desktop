@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { ConversationSnapshot } from '@deepseek-ai/dsh-client-runtime/client'
 import type { PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import { parseUsage, type TokenUsage } from '../usage/usage.ts'
 
 interface CodeItem {
   language: string
@@ -13,16 +14,6 @@ interface ArtifactItem {
   isError: boolean
   text: string
   seq: number
-}
-
-/** Parsed token usage for one assistant response. */
-interface TokenUsage {
-  promptTokens: number
-  completionTokens: number
-  totalTokens: number
-  cacheHitTokens?: number
-  price?: string
-  currency?: string
 }
 
 /** One assistant response with resolvable token usage. */
@@ -189,37 +180,6 @@ function extractArtifacts(snapshot: ConversationSnapshot | undefined): Extracted
     }
   }
   return { code, artifacts, usage }
-}
-
-/**
- * Defensively read the OpenAI/DeepSeek-shaped usage object off an assistant
- * node. The runtime stores it as `unknown`, so tolerate missing/renamed fields.
- */
-function parseUsage(raw: unknown): TokenUsage | null {
-  if (raw === null || typeof raw !== 'object') return null
-  const u = raw as Record<string, unknown>
-  const num = (value: unknown): number | undefined => (typeof value === 'number' && Number.isFinite(value) ? value : undefined)
-  const prompt = num(u.prompt_tokens)
-  const completion = num(u.completion_tokens)
-  const total = num(u.total_tokens)
-  if (prompt === undefined && completion === undefined && total === undefined) return null
-  let cache: number | undefined
-  const details = u.prompt_tokens_details
-  if (details !== null && typeof details === 'object') {
-    cache = num((details as Record<string, unknown>).cached_tokens)
-  }
-  let price: string | undefined
-  if (typeof u.total_price === 'string' || typeof u.total_price === 'number') price = String(u.total_price)
-  const currency = typeof u.currency === 'string' ? u.currency : undefined
-  const usage: TokenUsage = {
-    promptTokens: prompt ?? 0,
-    completionTokens: completion ?? 0,
-    totalTokens: total ?? (prompt ?? 0) + (completion ?? 0),
-  }
-  if (cache !== undefined) usage.cacheHitTokens = cache
-  if (price !== undefined) usage.price = price
-  if (currency !== undefined) usage.currency = currency
-  return usage
 }
 
 function pushFenced(target: CodeItem[], text: string, source: string, pattern: RegExp): void {

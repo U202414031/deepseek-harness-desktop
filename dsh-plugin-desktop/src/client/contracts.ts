@@ -50,6 +50,8 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     'sidebar.skins': { kind: 'single'; scope: 'root'; owner: Record<never, never> }
     /** Desktop-owned API settings surface rendered in the left column. */
     'sidebar.api': { kind: 'single'; scope: 'root'; owner: Record<never, never> }
+    /** Headless observer that publishes the active session's model/provider to a shared store. */
+    'desktop.model-monitor': { kind: 'single'; scope: 'session-maybe'; owner: Record<never, never> }
     /** Desktop-owned artifacts/code panel rendered in the right column. */
     'artifacts': { kind: 'single'; scope: 'session'; owner: Record<never, never> }
     /** Frame-wide additive overlays. */

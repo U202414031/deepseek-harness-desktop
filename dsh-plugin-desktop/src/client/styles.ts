@@ -277,6 +277,17 @@ html:has([aria-modal="true"]) .dshDesktopSidebarSurface::before { -webkit-app-re
 .dshDesktopBalanceRow span { color: var(--dsh-desktop-fg-muted); }
 .dshDesktopBalanceRow b { color: var(--dsh-desktop-fg); font-weight: 600; }
 
+/* ---- API panel: provider auto-detection + provider links ---- */
+.dshDesktopProviderDetect { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border: 1px solid var(--dsh-desktop-border); border-radius: 10px; background: var(--dsh-desktop-surface); }
+.dshDesktopProviderDetectLabel { font-size: 11px; color: var(--dsh-desktop-fg-muted); }
+.dshDesktopProviderDetectValue { font-size: 13px; font-weight: 600; color: var(--dsh-desktop-fg); word-break: break-all; }
+.dshDesktopProviderDetectNone { color: var(--dsh-desktop-fg-muted); font-weight: 500; }
+.dshDesktopApiLinks { display: flex; flex-direction: column; gap: 8px; margin-top: 2px; }
+.dshDesktopApiLink { text-align: center; text-decoration: none; -webkit-app-region: no-drag; }
+a.dshDesktopApiLink.dshDesktopPrimaryButton { color: var(--dsh-desktop-accent-fg); }
+a.dshDesktopApiLink.dshDesktopSecondaryButton { color: var(--dsh-desktop-fg); }
+
+
 /* ---- Usage tab (right panel) ---- */
 .dshDesktopUsageWrap { display: flex; flex-direction: column; gap: 10px; }
 .dshDesktopUsageTotal { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border: 1px solid var(--dsh-desktop-border); border-radius: 10px; background: var(--dsh-desktop-surface); font-size: 12px; color: var(--dsh-desktop-fg-muted); }
