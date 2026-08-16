@@ -12,6 +12,14 @@ const skinListeners = new Set<Listener>()
 const catalogListeners = new Set<Listener>()
 /** Properties applied by the previously active skin, so we can clear them on switch. */
 let lastProperties: string[] = []
+/**
+ * Cached catalog snapshot. `getCatalog` is used as the `getSnapshot` for a
+ * `useSyncExternalStore` subscription; React requires that snapshot to keep a
+ * stable reference between renders, otherwise it treats the store as changing on
+ * every render and enters an infinite re-render loop that crashes the surface.
+ * The cache is invalidated whenever the custom-skin set changes.
+ */
+let catalogCache: Skin[] | null = null
 
 function readInitial(): string {
   try {
@@ -25,7 +33,13 @@ function readInitial(): string {
 
 /** @returns the full skin catalog: built-in skins followed by user-created ones. */
 export function getCatalog(): Skin[] {
-  return [...SKINS, ...loadCustomSkins()]
+  if (catalogCache === null) catalogCache = [...SKINS, ...loadCustomSkins()]
+  return catalogCache
+}
+
+/** Drop the cached catalog so the next `getCatalog` re-reads custom skins. */
+function invalidateCatalog(): void {
+  catalogCache = null
 }
 
 /** Resolve a skin definition by id, falling back to the default skin. */
@@ -54,6 +68,7 @@ export function subscribeCatalog(listener: Listener): () => void {
 export function saveCustomSkin(skin: Skin): void {
   const next = loadCustomSkins().filter(existing => existing.id !== skin.id).concat(skin)
   persistCustomSkins(next)
+  invalidateCatalog()
   for (const listener of catalogListeners) listener()
   if (current === skin.id) applySkin(skin.id)
 }
@@ -61,6 +76,7 @@ export function saveCustomSkin(skin: Skin): void {
 /** Remove a user-created skin by id. */
 export function deleteCustomSkin(id: string): void {
   persistCustomSkins(loadCustomSkins().filter(existing => existing.id !== id))
+  invalidateCatalog()
   for (const listener of catalogListeners) listener()
   if (current === id) setSkin('default')
 }
