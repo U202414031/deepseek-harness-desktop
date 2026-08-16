@@ -1,6 +1,7 @@
 import type {
   Connector, PlatformField, PlatformMessage, PlatformMeta, PlatformTarget, SendResult,
 } from './platform-types.ts'
+import { proxyFetch } from '../../http-proxy.ts'
 
 const WECOM_BASE = 'https://qyapi.weixin.qq.com/cgi-bin'
 
@@ -38,7 +39,7 @@ export const wechatConnector: Connector = {
     const corpsecret = values.corpsecret?.trim()
     const agentid = values.agentid?.trim()
     if (!corpid || !corpsecret || !agentid) throw new Error('请填写企业 ID、应用 Secret 与 AgentId。')
-    const response = await fetch(
+    const response = await proxyFetch(
       `${WECOM_BASE}/gettoken?corpid=${encodeURIComponent(corpid)}&corpsecret=${encodeURIComponent(corpsecret)}`,
     )
     if (!response.ok) throw new Error(`获取访问令牌失败：HTTP ${response.status}`)
@@ -56,7 +57,7 @@ export const wechatConnector: Connector = {
       const accessToken = sep >= 0 ? token.slice(0, sep) : token
       const agentid = sep >= 0 ? token.slice(sep + 2) : ''
       if (!agentid) return { ok: false, message: '缺少 AgentId，请重新连接。' }
-      const response = await fetch(
+      const response = await proxyFetch(
         `${WECOM_BASE}/message/send?access_token=${encodeURIComponent(accessToken)}`,
         {
           method: 'POST',

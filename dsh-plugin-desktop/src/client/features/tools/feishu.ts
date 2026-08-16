@@ -1,6 +1,7 @@
 import type {
   Connector, PlatformField, PlatformMessage, PlatformMeta, PlatformTarget, SendResult,
 } from './platform-types.ts'
+import { proxyFetch } from '../../http-proxy.ts'
 
 const FEISHU_BASE = 'https://open.feishu.cn/open-apis'
 
@@ -78,7 +79,7 @@ export const feishuConnector: Connector = {
     const appId = values.appId?.trim()
     const appSecret = values.appSecret?.trim()
     if (!appId || !appSecret) throw new Error('请填写 App ID 与 App Secret。')
-    const response = await fetch(`${FEISHU_BASE}/auth/v3/tenant_access_token/internal`, {
+    const response = await proxyFetch(`${FEISHU_BASE}/auth/v3/tenant_access_token/internal`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ app_id: appId, app_secret: appSecret }),
@@ -93,7 +94,7 @@ export const feishuConnector: Connector = {
 
   async sendMessage(token: string, target: string, text: string, _opts?: { targetType?: string }): Promise<SendResult> {
     try {
-      const response = await fetch(`${FEISHU_BASE}/im/v1/messages?receive_id_type=chat_id`, {
+      const response = await proxyFetch(`${FEISHU_BASE}/im/v1/messages?receive_id_type=chat_id`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ receive_id: target, msg_type: 'text', content: JSON.stringify({ text }) }),
@@ -109,7 +110,7 @@ export const feishuConnector: Connector = {
   },
 
   async listTargets(token: string): Promise<PlatformTarget[]> {
-    const response = await fetch(`${FEISHU_BASE}/im/v1/chats?page_size=50`, {
+    const response = await proxyFetch(`${FEISHU_BASE}/im/v1/chats?page_size=50`, {
       headers: { Authorization: `Bearer ${token}` },
     })
     const data = await response.json() as ChatsResponse
@@ -121,7 +122,7 @@ export const feishuConnector: Connector = {
     const url = `${FEISHU_BASE}/im/v1/messages?container_id_type=chat&container_id=${encodeURIComponent(
       target,
     )}&page_size=20&sort_type=by_create_time_desc`
-    const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+    const response = await proxyFetch(url, { headers: { Authorization: `Bearer ${token}` } })
     const data = await response.json() as MessagesResponse
     if (data.code !== 0) throw new Error(data.msg ?? '获取消息失败')
     const items = data.data?.items ?? []

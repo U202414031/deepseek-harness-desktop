@@ -6,7 +6,7 @@ import {
   CONNECTORS, PLATFORMS, clearToolConfig, loadToolAuto, loadToolConfig, loadToolSchedules, loadToolSummaries, saveToolAuto, saveToolConfig, saveToolSchedules, saveToolSummaries,
 } from './registry.ts'
 import { loadTasks, newTaskId, saveTasks } from './tasks.ts'
-import { extractTasks, summarize } from './llm.ts'
+import { assistantCommand, extractTasks, summarize } from './llm.ts'
 
 const STATUS_LABEL: Record<ConnStatus, string> = {
   unconfigured: '未配置',
@@ -72,6 +72,8 @@ export function ToolsPanel(): JSX.Element {
   const [summarizing, setSummarizing] = useState(false)
   const [extracting, setExtracting] = useState(false)
   const [taskTitle, setTaskTitle] = useState('')
+  const [commandText, setCommandText] = useState('')
+  const [commandRunning, setCommandRunning] = useState(false)
 
   const currentType = meta.targetTypes?.find((t) => t.id === targetType)
   const inputMode: 'select' | 'text' = currentType ? currentType.input : meta.targetMode
@@ -424,6 +426,49 @@ export function ToolsPanel(): JSX.Element {
     saveToolAuto(platform, next)
   }
 
+  const onRunCommand = async (): Promise<void> => {
+    const text = commandText.trim()
+    if (text.length === 0) { setFieldError('请输入指令。'); return }
+    setCommandRunning(true)
+    setFieldError(null)
+    try {
+      const a = await assistantCommand(text)
+      if (a.platform !== undefined && a.platform !== activeId) {
+        setActiveId(a.platform)
+        setInfo(`已识别平台「${a.platform}」，已为你切换，连接后请再次执行指令。`)
+        return
+      }
+      if (a.action === 'task') {
+        const title = a.taskTitle ?? text
+        setTasks((prev) => [...prev, { id: newTaskId(), title, done: false, createdAt: Date.now(), source: activeId }])
+        setInfo(`已添加任务：${title}`)
+        return
+      }
+      if (a.action === 'summarize') {
+        if (token === null) { setFieldError('请先连接平台。'); return }
+        if (targetId.trim().length === 0) { setFieldError(`请先${inputMode === 'select' ? '选择' : '填写'}${effectiveTargetLabel}。`); return }
+        const msgs = await connector.fetchMessages(token, targetId, { targetType })
+        const txt = msgs.map((m) => `${m.sender}：${m.text}`).join('\n')
+        if (txt.trim().length === 0) { setInfo('未获取到消息，无法总结。'); return }
+        setMessages(msgs)
+        setSummary(await summarize(txt))
+        setInfo('已获取并总结最近消息')
+        return
+      }
+      if (a.action === 'send') {
+        if (token === null) { setFieldError('请先连接平台。'); return }
+        if (targetId.trim().length === 0) { setFieldError(`请先${inputMode === 'select' ? '选择' : '填写'}${effectiveTargetLabel}。`); return }
+        const msg = a.message ?? text
+        const res = await connector.sendMessage(token, targetId, msg, { targetType })
+        setInfo(res.message)
+        return
+      }
+      setInfo('未识别出可执行的动作，请描述得再具体些（如「给QQ发消息：今晚八点开会」）。')
+    } finally {
+      setCommandRunning(false)
+    }
+  }
+
   return (
     <div className="dshDesktopTools">
       <header className="dshDesktopFeatureHeader">
@@ -665,6 +710,22 @@ export function ToolsPanel(): JSX.Element {
       )}
 
       <div className="dshDesktopToolsCard">
+        <h3 className="dshDesktopToolsSection">AI 指令</h3>
+        <p className="dshDesktopToolsNote">用一句话让 AI 帮你操作：发消息、添加任务、总结最近消息（需在「API 设置」填 DeepSeek Key，否则退回本地关键词识别）。</p>
+        <div className="dshDesktopToolsSend">
+          <textarea
+            className="dshDesktopSearchInput dshDesktopToolsTextarea"
+            value={commandText}
+            placeholder="例如：给当前群发消息「今晚八点开会」 / 添加任务：明天交周报 / 总结最近消息"
+            onChange={(event) => { setCommandText(event.target.value) }}
+          />
+          <button type="button" className="dshDesktopPrimaryButton" onClick={() => { void onRunCommand() }} disabled={commandRunning}>
+            {commandRunning ? '执行中…' : '执行'}
+          </button>
+        </div>
+      </div>
+
+      <div className="dshDesktopToolsCard">
         <h3 className="dshDesktopToolsSection">任务</h3>
         <div className="dshDesktopToolsSend">
           <input
@@ -707,6 +768,16 @@ export function ToolsPanel(): JSX.Element {
           </ul>
         </div>
       )}
+
+      <div className="dshDesktopToolsCard">
+        <h3 className="dshDesktopToolsSection">部署机器人</h3>
+        <p className="dshDesktopToolsNote">各平台机器人接入方式（凭证仅存本机）：</p>
+        <ul className="dshDesktopToolsDeploy">
+          <li><b>QQ</b>：在 <a href="https://bot.q.qq.com" target="_blank" rel="noreferrer">QQ 开放平台</a> 创建机器人 → 获取 AppID 与密钥，填入上方连接即可发消息、拉取消息。</li>
+          <li><b>微信</b>：个人微信无官方开放接口，请使用 <a href="https://work.weixin.qq.com" target="_blank" rel="noreferrer">企业微信</a>，在管理后台创建自建应用，获取 企业ID / Secret / AgentId 后即可发送消息。</li>
+          <li><b>飞书</b>：在 <a href="https://open.feishu.cn" target="_blank" rel="noreferrer">飞书开放平台</a> 创建企业自建应用，开通 im:message 权限，获取 App ID / App Secret。</li>
+        </ul>
+      </div>
 
       {fieldError !== null && <p className="dshDesktopMarketplaceNote">{fieldError}</p>}
       {info !== null && <p className="dshDesktopToolsInfo">{info}</p>}

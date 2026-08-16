@@ -356,6 +356,13 @@ a.dshDesktopApiLink.dshDesktopSecondaryButton { color: var(--dsh-desktop-fg); }
 .dshDesktopToolsSummaryTarget { color: var(--dsh-desktop-accent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 60%; }
 .dshDesktopToolsSummaryItem .dshDesktopToolsSummary { background: var(--dsh-desktop-surface); }
 
+/* ---- Tools: deploy guidance ---- */
+.dshDesktopToolsDeploy { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; font-size: 12px; line-height: 1.6; color: var(--dsh-desktop-fg-muted); }
+.dshDesktopToolsDeploy li { padding: 7px 9px; border: 1px solid var(--dsh-desktop-border); border-radius: 8px; background: var(--dsh-desktop-surface-2); }
+.dshDesktopToolsDeploy b { color: var(--dsh-desktop-fg); }
+.dshDesktopToolsDeploy a { color: var(--dsh-desktop-accent); text-decoration: none; }
+.dshDesktopToolsDeploy a:hover { text-decoration: underline; }
+
 /* ---- Tools: target type selector + scheduled send ---- */
 .dshDesktopToolsTypeRow { display: flex; gap: 6px; }
 .dshDesktopToolsTypeBtn { flex: 1 1 0; padding: 6px 4px; border: 1px solid var(--dsh-desktop-border); border-radius: 8px; background: var(--dsh-desktop-surface); color: var(--dsh-desktop-fg-muted); font-size: 12px; cursor: pointer; -webkit-app-region: no-drag; transition: border-color .15s, color .15s, background .15s; }

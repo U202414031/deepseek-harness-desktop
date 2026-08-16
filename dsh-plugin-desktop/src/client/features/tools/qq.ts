@@ -1,6 +1,7 @@
 import type {
   Connector, PlatformField, PlatformMessage, PlatformMeta, PlatformTarget, SendResult,
 } from './platform-types.ts'
+import { proxyFetch } from '../../http-proxy.ts'
 
 const QQ_TOKEN_URL = 'https://bots.qq.com/app/getAppAccessToken'
 const QQ_API = 'https://api.sgroup.qq.com'
@@ -50,7 +51,7 @@ export const qqConnector: Connector = {
     const appId = values.appId?.trim()
     const clientSecret = values.clientSecret?.trim()
     if (!appId || !clientSecret) throw new Error('请填写机器人 AppID 与密钥。')
-    const response = await fetch(QQ_TOKEN_URL, {
+    const response = await proxyFetch(QQ_TOKEN_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', appId, clientSecret },
       body: JSON.stringify({ appId, clientSecret }),
@@ -70,7 +71,7 @@ export const qqConnector: Connector = {
         ? `${QQ_API}/v2/users/${encodeURIComponent(target)}/messages`
         : `${QQ_API}/v2/groups/${encodeURIComponent(target)}/messages`
     try {
-      const response = await fetch(url, {
+      const response = await proxyFetch(url, {
         method: 'POST',
         headers: { Authorization: `QQBot ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: text, msg_type: 0 }),
@@ -86,7 +87,7 @@ export const qqConnector: Connector = {
   },
 
   async listTargets(token: string): Promise<PlatformTarget[]> {
-    const response = await fetch(`${QQ_API}/v2/groups`, {
+    const response = await proxyFetch(`${QQ_API}/v2/groups`, {
       headers: { Authorization: `QQBot ${token}` },
     })
     const data = await response.json() as GroupsResponse
@@ -101,7 +102,7 @@ export const qqConnector: Connector = {
         'QQ 私聊历史消息需经机器人网关实时接收，REST 接口不支持拉取。请复制对方发来的消息后，在「信息总结」中粘贴并总结。',
       )
     }
-    const response = await fetch(
+    const response = await proxyFetch(
       `${QQ_API}/v2/groups/${encodeURIComponent(target)}/messages?limit=20`,
       { headers: { Authorization: `QQBot ${token}` } },
     )

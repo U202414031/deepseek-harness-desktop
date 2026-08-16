@@ -1,4 +1,5 @@
 import { getApiKey } from '../api/api-service.ts'
+import { proxyFetch } from '../../http-proxy.ts'
 
 const DEEPSEEK_CHAT = 'https://api.deepseek.com/chat/completions'
 
@@ -15,7 +16,7 @@ async function deepseekChat(system: string, user: string): Promise<string | null
   const key = getApiKey('deepseek')
   if (!key) return null
   try {
-    const response = await fetch(DEEPSEEK_CHAT, {
+    const response = await proxyFetch(DEEPSEEK_CHAT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
       body: JSON.stringify({
@@ -83,4 +84,63 @@ function localExtract(text: string): string[] {
     )
     .map((l) => l.replace(/^[-*•\s]+/, '').trim())
     .slice(0, 20)
+}
+
+/** A structured action the assistant resolves from a natural-language instruction. */
+export interface AssistantAction {
+  action: 'send' | 'task' | 'summarize' | 'unknown'
+  platform?: 'feishu' | 'wechat' | 'qq'
+  targetType?: string
+  target?: string
+  message?: string
+  taskTitle?: string
+}
+
+/**
+ * Parse a natural-language instruction into an executable tool action.
+ * Uses DeepSeek when a key is configured, else a local keyword heuristic.
+ */
+export async function assistantCommand(text: string): Promise<AssistantAction> {
+  const trimmed = text.trim()
+  if (!trimmed) return { action: 'unknown' }
+  const ai = await deepseekChat(
+    '你是桌面工具助手。把用户的自然语言指令解析为一个 JSON 对象，只输出 JSON，不要任何解释或多余文字。\n' +
+      '字段：action 取 "send"(发消息) | "task"(添加任务) | "summarize"(总结最近消息) | "unknown"；\n' +
+      '可选 platform 取 "feishu" | "wechat" | "qq"；可选 target(目标会话/群/好友 id 或名称)、message(要发送的内容)、taskTitle(任务标题)。\n' +
+      '示例：{"action":"send","platform":"qq","message":"今晚八点开会"}\n' +
+      '示例：{"action":"task","taskTitle":"明天提交周报"}',
+    trimmed,
+  )
+  if (ai) {
+    const parsed = parseActionJson(ai)
+    if (parsed) return parsed
+  }
+  return localCommand(trimmed)
+}
+
+function parseActionJson(text: string): AssistantAction | null {
+  try {
+    const start = text.indexOf('{')
+    const end = text.lastIndexOf('}')
+    if (start < 0 || end <= start) return null
+    const obj = JSON.parse(text.slice(start, end + 1)) as Record<string, unknown>
+    const action: AssistantAction['action'] =
+      obj.action === 'send' || obj.action === 'task' || obj.action === 'summarize' ? obj.action : 'unknown'
+    const result: AssistantAction = { action }
+    if (obj.platform === 'feishu' || obj.platform === 'wechat' || obj.platform === 'qq') result.platform = obj.platform
+    if (typeof obj.targetType === 'string') result.targetType = obj.targetType
+    if (typeof obj.target === 'string') result.target = obj.target
+    if (typeof obj.message === 'string') result.message = obj.message
+    if (typeof obj.taskTitle === 'string') result.taskTitle = obj.taskTitle
+    return result
+  } catch {
+    return null
+  }
+}
+
+function localCommand(text: string): AssistantAction {
+  if (/发|发送|发到|发消息|send/i.test(text)) return { action: 'send', message: text }
+  if (/任务|待办|todo|task|安排|记得|跟进/i.test(text)) return { action: 'task', taskTitle: text }
+  if (/总结|摘要|概括|汇总/i.test(text)) return { action: 'summarize' }
+  return { action: 'unknown' }
 }

@@ -11,6 +11,7 @@ import {
 } from '@deepseek-ai/dsh-client-ui-theme'
 import { settingsNamespace } from '@deepseek-ai/dsh-settings'
 import { installMarketplaceRoutes } from './marketplace-host.ts'
+import { installHttpProxy } from './http-proxy.ts'
 import type { DesktopShellMode } from './runtime.ts'
 import type {} from './runtime.ts'
 
@@ -138,6 +139,9 @@ export function apply(ctx: Context, config: Config): void {
   ctx.inject(['desktopPnpm', 'desktopProfiles'], (childCtx) => {
     childCtx.effect(() => installMarketplaceRoutes(childCtx), 'dsh-plugin-desktop: marketplace routes')
   })
+  // The sandboxed renderer cannot reach third-party APIs (CORS); let it tunnel
+  // requests through the Host process, which uses Node fetch (no CORS).
+  ctx.effect(() => installHttpProxy(ctx), 'dsh-plugin-desktop: http proxy')
   if (config.mode === 'advanced') {
     ctx.on('settings/updated', (namespace, next) => {
       if (namespace !== UI_THEME_SETTINGS_NAMESPACE) return

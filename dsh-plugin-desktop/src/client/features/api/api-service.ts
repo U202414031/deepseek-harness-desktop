@@ -1,4 +1,5 @@
 import type { ProviderSpec } from './provider-config.ts'
+import { proxyFetch } from '../../http-proxy.ts'
 
 /**
  * Local storage of user-owned API keys, kept per provider so the panel can show
@@ -60,7 +61,7 @@ export async function fetchBalance(spec: ProviderSpec, apiKey: string): Promise<
   if (!spec.balanceSupported || spec.balancePath.length === 0) {
     throw new Error(`${spec.label} 暂不支持通过 API Key 直接查询余额，请前往其控制台查看与充值。`)
   }
-  const response = await fetch(`${spec.baseUrl}${spec.balancePath}`, {
+  const response = await proxyFetch(`${spec.baseUrl}${spec.balancePath}`, {
     method: 'GET',
     headers: { Authorization: `Bearer ${apiKey.trim()}` },
   })
