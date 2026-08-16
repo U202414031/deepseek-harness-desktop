@@ -31,6 +31,7 @@ export function AdvancedFrame({ layout, platform, renderSlot, useSessions }: Adv
     const current = state.current
     return current !== undefined && state.byId[current]?.blank === false ? current : undefined
   })
+  const hasSession = useSessions((state) => state.current !== undefined)
 
   useEffect(() => {
     const element = frameRef.current
@@ -134,7 +135,43 @@ export function AdvancedFrame({ layout, platform, renderSlot, useSessions }: Adv
       <aside className="dshDesktopDetailsSurface">{renderSlot('details', {})}</aside>
       <aside className="dshDesktopArtifactsSurface" data-open={panels.artifacts > 0 || undefined}>
         {panels.artifacts > 0 ? (
-          <div className="dshDesktopArtifactsPanel">{renderSlot('artifacts', {})}</div>
+          <>
+            <header className="dshDesktopFeatureHeader dshDesktopArtifactsHeader">
+              <h2 className="dshDesktopFeatureTitle">产物与代码</h2>
+              <div className="dshDesktopArtifactsHeader__buttons">
+                <button
+                  type="button"
+                  className="dshDesktopIconButton"
+                  title={panels.artifactsExpanded ? '还原面板宽度' : '放大面板'}
+                  aria-label={panels.artifactsExpanded ? '还原面板宽度' : '放大面板'}
+                  aria-pressed={panels.artifactsExpanded}
+                  onClick={() => { layout.toggleArtifactsExpanded() }}
+                >
+                  {panels.artifactsExpanded ? (
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 8h8" /><path d="M4 6l2 2-2 2" /><path d="M12 6l-2 2 2 2" /></svg>
+                  ) : (
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2 8h4M4 6l-2 2 2 2" /><path d="M14 8h-4M12 6l2 2-2 2" /></svg>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  className="dshDesktopIconButton"
+                  title="收起产物面板"
+                  aria-label="收起产物面板"
+                  onClick={() => { layout.closeArtifacts() }}
+                >
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 4l4 4-4 4" /></svg>
+                </button>
+              </div>
+            </header>
+            {hasSession ? (
+              <div className="dshDesktopArtifactsPanel">{renderSlot('artifacts', {})}</div>
+            ) : (
+              <div className="dshDesktopArtifactsPanel">
+                <p className="dshDesktopEmptyState">开始一段对话后，代码块与工具产物会显示在这里。</p>
+              </div>
+            )}
+          </>
         ) : (
           <button
             type="button"

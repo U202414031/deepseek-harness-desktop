@@ -1,7 +1,6 @@
-import { useCallback, useMemo, useState, useSyncExternalStore } from 'react'
+import { useMemo, useState } from 'react'
 import type { ConversationSnapshot } from '@deepseek-ai/dsh-client-runtime/client'
 import type { PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
-import type { DesktopLayoutState } from '../../layout-state.ts'
 
 interface CodeItem {
   language: string
@@ -21,49 +20,19 @@ interface Extracted {
   artifacts: ArtifactItem[]
 }
 
-/** Desktop-owned artifacts/code panel rendered in the right column. */
-interface ArtifactsPanelProps extends PropsRuntime<'artifacts'> {
-  layout: DesktopLayoutState
-}
-export function ArtifactsPanel({ useSession, layout }: ArtifactsPanelProps): JSX.Element {
+/**
+ * Desktop-owned artifacts/code content. The surrounding panel chrome (title and
+ * enlarge / collapse controls) is rendered by the advanced root frame so the
+ * right column stays present and operable even when no session is active; this
+ * component only renders the tab strip and the extracted code / product lists.
+ */
+export function ArtifactsPanel({ useSession }: PropsRuntime<'artifacts'>): JSX.Element {
   const snapshot = useSession((s) => s)
   const extracted = useMemo(() => extractArtifacts(snapshot), [snapshot])
   const [tab, setTab] = useState<'code' | 'artifacts'>('code')
-  const subscribeLayout = useCallback((listener: () => void) => layout.subscribe(listener), [layout])
-  const readLayout = useCallback(() => layout.getSnapshot(), [layout])
-  const layoutSnapshot = useSyncExternalStore(subscribeLayout, readLayout)
-  const expanded = layoutSnapshot.artifactsExpanded
 
   return (
     <div className="dshDesktopArtifacts">
-      <header className="dshDesktopFeatureHeader dshDesktopArtifactsHeader">
-        <h2 className="dshDesktopFeatureTitle">产物与代码</h2>
-        <div className="dshDesktopArtifactsHeader__buttons">
-          <button
-            type="button"
-            className="dshDesktopIconButton"
-            title={expanded ? '还原面板宽度' : '放大面板'}
-            aria-label={expanded ? '还原面板宽度' : '放大面板'}
-            aria-pressed={expanded}
-            onClick={() => { layout.toggleArtifactsExpanded() }}
-          >
-            {expanded ? (
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 8h8" /><path d="M4 6l2 2-2 2" /><path d="M12 6l-2 2 2 2" /></svg>
-            ) : (
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2 8h4M4 6l-2 2 2 2" /><path d="M14 8h-4M12 6l2 2-2 2" /></svg>
-            )}
-          </button>
-          <button
-            type="button"
-            className="dshDesktopIconButton"
-            title="收起产物面板"
-            aria-label="收起产物面板"
-            onClick={() => { layout.closeArtifacts() }}
-          >
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 4l4 4-4 4" /></svg>
-          </button>
-        </div>
-      </header>
       <div className="dshDesktopArtifactsTabs" role="tablist">
         <button
           type="button"
