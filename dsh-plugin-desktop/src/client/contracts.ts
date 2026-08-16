@@ -14,7 +14,18 @@ export interface DesktopLayoutService {
   openDetails(): void
   /** Close the details panel. */
   closeDetails(): void
+  /** Switch the desktop-owned left surface. */
+  setLeftPanel(panel: DesktopLeftPanel): void
+  /** Open the artifacts/code panel. */
+  openArtifacts(): void
+  /** Close the artifacts/code panel. */
+  closeArtifacts(): void
+  /** Toggle the artifacts/code panel open/closed. */
+  toggleArtifacts(): void
 }
+
+/** Left-surface selection rendered inside the desktop-owned sidebar column. */
+export type DesktopLeftPanel = 'chat' | 'marketplace' | 'skins'
 
 declare module '@deepseek-ai/cordis' {
   interface Context {
@@ -31,6 +42,12 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     'conversation': { kind: 'single'; scope: 'session-maybe'; owner: Record<never, never> }
     /** Unchanged upstream details surface. */
     'details': { kind: 'single'; scope: 'session'; owner: Record<never, never> }
+    /** Desktop-owned marketplace surface rendered in the left column. */
+    'sidebar.marketplace': { kind: 'single'; scope: 'root'; owner: Record<never, never> }
+    /** Desktop-owned skin selector surface rendered in the left column. */
+    'sidebar.skins': { kind: 'single'; scope: 'root'; owner: Record<never, never> }
+    /** Desktop-owned artifacts/code panel rendered in the right column. */
+    'artifacts': { kind: 'single'; scope: 'session'; owner: Record<never, never> }
     /** Frame-wide additive overlays. */
     'shell.overlay': { kind: 'list'; scope: 'root' }
   }

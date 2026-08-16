@@ -102,9 +102,9 @@ describe('advanced desktop layout', () => {
   })
 
   it('uses the compatibility rail on Windows and the wider desktop rail on macOS', () => {
-    expect(computeDesktopColumns(1440, 0, 0)).toEqual({ sidebar: SIDEBAR_COLLAPSED, center: 1384, details: 0 })
+    expect(computeDesktopColumns(1440, 0, 0)).toEqual({ sidebar: SIDEBAR_COLLAPSED, center: 1384, details: 0, artifacts: 0 })
     expect(computeDesktopColumns(1440, 0, 0, MACOS_SIDEBAR_COLLAPSED))
-      .toEqual({ sidebar: MACOS_SIDEBAR_COLLAPSED, center: 1350, details: 0 })
+      .toEqual({ sidebar: MACOS_SIDEBAR_COLLAPSED, center: 1350, details: 0, artifacts: 0 })
     expect(SIDEBAR_COLLAPSED).toBe(56)
     expect(MACOS_SIDEBAR_COLLAPSED).toBe(90)
   })
@@ -117,9 +117,9 @@ describe('advanced desktop layout', () => {
     layout.openDetails()
     layout.closeDetails()
     expect(snapshots).toEqual([
-      { sidebar: 0, details: 0, narrow: false, narrowExpanded: false },
-      { sidebar: 0, details: 360, narrow: false, narrowExpanded: false },
-      { sidebar: 0, details: 0, narrow: false, narrowExpanded: false },
+      { sidebar: 0, details: 0, artifacts: 0, narrow: false, narrowExpanded: false, leftPanel: 'chat' },
+      { sidebar: 0, details: 360, artifacts: 0, narrow: false, narrowExpanded: false, leftPanel: 'chat' },
+      { sidebar: 0, details: 0, artifacts: 0, narrow: false, narrowExpanded: false, leftPanel: 'chat' },
     ])
   })
 

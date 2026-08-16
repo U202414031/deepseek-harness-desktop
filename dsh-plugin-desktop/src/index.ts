@@ -10,6 +10,7 @@ import {
   type ThemeSettings,
 } from '@deepseek-ai/dsh-client-ui-theme'
 import { settingsNamespace } from '@deepseek-ai/dsh-settings'
+import { installMarketplaceRoutes } from './marketplace-host.ts'
 import type { DesktopShellMode } from './runtime.ts'
 import type {} from './runtime.ts'
 
@@ -130,6 +131,13 @@ export function apply(ctx: Context, config: Config): void {
       if (pending !== undefined) clearImmediate(pending)
     }
   }, 'dsh-plugin-desktop: restart after mode change')
+
+  // The marketplace UI runs in the sandboxed renderer and cannot reach the
+  // Host-only package-manager services directly; expose them through loopback
+  // routes only when both capabilities are present in this generation.
+  ctx.inject(['desktopPnpm', 'desktopProfiles'], (childCtx) => {
+    childCtx.effect(() => installMarketplaceRoutes(childCtx), 'dsh-plugin-desktop: marketplace routes')
+  })
   if (config.mode === 'advanced') {
     ctx.on('settings/updated', (namespace, next) => {
       if (namespace !== UI_THEME_SETTINGS_NAMESPACE) return

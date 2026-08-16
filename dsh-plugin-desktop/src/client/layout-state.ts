@@ -4,11 +4,18 @@ export interface DesktopLayoutSnapshot {
   sidebar: number
   /** Preferred details width; zero means closed. */
   details: number
+  /** Preferred artifacts/code panel width; zero means closed. */
+  artifacts: number
   /** Whether the current viewport is below the automatic-collapse breakpoint. */
   narrow: boolean
   /** Manual narrow-screen override that temporarily expands the rail. */
   narrowExpanded: boolean
+  /** Active left-surface selection driving the sidebar column content. */
+  leftPanel: DesktopLeftPanel
 }
+
+/** Left-surface selection rendered inside the desktop-owned sidebar column. */
+export type DesktopLeftPanel = 'chat' | 'marketplace' | 'skins'
 
 /** Column geometry after preserving the center surface. */
 export interface DesktopColumns {
@@ -18,6 +25,8 @@ export interface DesktopColumns {
   center: number
   /** Rendered details width. */
   details: number
+  /** Rendered artifacts/code panel width. */
+  artifacts: number
 }
 
 /** Compatibility-mode compact rail used by the upstream Windows sidebar. */
@@ -31,13 +40,19 @@ export const SIDEBAR_AUTO_COLLAPSE = 1024
 export const DETAILS_DEFAULT = 360
 export const DETAILS_MIN = 300
 export const DETAILS_MAX = 520
+export const ARTIFACTS_DEFAULT = 360
+export const ARTIFACTS_MIN = 300
+export const ARTIFACTS_MAX = 560
 export const CENTER_MIN = 640
 
 /**
- * Resolve three desktop columns without allowing details to squeeze the conversation below its floor.
+ * Resolve four desktop columns without allowing details or artifacts to squeeze
+ * the conversation below its floor.
  * @param viewport - available frame width.
  * @param sidebar - sidebar preference, where zero selects the compact rail.
  * @param details - details preference, where zero closes the panel.
+ * @param collapsedWidth - rail width used when the sidebar preference is zero.
+ * @param artifacts - artifacts/code panel preference, where zero closes it.
  * @returns rendered column widths.
  */
 export function computeDesktopColumns(
@@ -45,17 +60,32 @@ export function computeDesktopColumns(
   sidebar: number,
   details: number,
   collapsedWidth: number = SIDEBAR_COLLAPSED,
+  artifacts: number = 0,
 ): DesktopColumns {
   const sidebarWidth = sidebar === 0 ? collapsedWidth : clamp(sidebar, SIDEBAR_MIN, SIDEBAR_MAX)
   const preferredDetails = details === 0 ? 0 : clamp(details, DETAILS_MIN, DETAILS_MAX)
-  if (sidebarWidth + preferredDetails + CENTER_MIN <= viewport) {
-    return { sidebar: sidebarWidth, center: viewport - sidebarWidth - preferredDetails, details: preferredDetails }
+  const preferredArtifacts = artifacts === 0 ? 0 : clamp(artifacts, ARTIFACTS_MIN, ARTIFACTS_MAX)
+  if (sidebarWidth + preferredDetails + preferredArtifacts + CENTER_MIN <= viewport) {
+    return {
+      sidebar: sidebarWidth,
+      center: viewport - sidebarWidth - preferredDetails - preferredArtifacts,
+      details: preferredDetails,
+      artifacts: preferredArtifacts,
+    }
   }
-  const reducedDetails = preferredDetails === 0 ? 0 : Math.max(DETAILS_MIN, viewport - sidebarWidth - CENTER_MIN)
-  if (sidebarWidth + reducedDetails + CENTER_MIN <= viewport) {
-    return { sidebar: sidebarWidth, center: CENTER_MIN, details: reducedDetails }
+  const reducedArtifacts = preferredArtifacts === 0
+    ? 0
+    : Math.max(ARTIFACTS_MIN, viewport - sidebarWidth - preferredDetails - CENTER_MIN)
+  if (sidebarWidth + preferredDetails + reducedArtifacts + CENTER_MIN <= viewport) {
+    return { sidebar: sidebarWidth, center: CENTER_MIN, details: preferredDetails, artifacts: reducedArtifacts }
   }
-  return { sidebar: sidebarWidth, center: Math.max(0, viewport - sidebarWidth), details: 0 }
+  const reducedDetails = preferredDetails === 0
+    ? 0
+    : Math.max(DETAILS_MIN, viewport - sidebarWidth - reducedArtifacts - CENTER_MIN)
+  if (sidebarWidth + reducedDetails + reducedArtifacts + CENTER_MIN <= viewport) {
+    return { sidebar: sidebarWidth, center: CENTER_MIN, details: reducedDetails, artifacts: reducedArtifacts }
+  }
+  return { sidebar: sidebarWidth, center: Math.max(0, viewport - sidebarWidth), details: 0, artifacts: 0 }
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -67,8 +97,10 @@ export class DesktopLayoutState {
   private snapshot: DesktopLayoutSnapshot = Object.freeze({
     sidebar: SIDEBAR_DEFAULT,
     details: 0,
+    artifacts: 0,
     narrow: false,
     narrowExpanded: false,
+    leftPanel: 'chat',
   })
   private readonly listeners = new Set<() => void>()
 
@@ -108,6 +140,28 @@ export class DesktopLayoutState {
     if (this.snapshot.details !== 0) this.publish({ ...this.snapshot, details: 0 })
   }
 
+  /** Switch the desktop-owned left surface. */
+  setLeftPanel(panel: DesktopLeftPanel): void {
+    if (this.snapshot.leftPanel === panel) return
+    this.publish({ ...this.snapshot, leftPanel: panel })
+  }
+
+  /** Open the artifacts/code panel at its default width. */
+  openArtifacts(): void {
+    if (this.snapshot.artifacts === 0) this.publish({ ...this.snapshot, artifacts: ARTIFACTS_DEFAULT })
+  }
+
+  /** Close the artifacts/code panel while keeping its slot mounted. */
+  closeArtifacts(): void {
+    if (this.snapshot.artifacts !== 0) this.publish({ ...this.snapshot, artifacts: 0 })
+  }
+
+  /** Toggle the artifacts/code panel open/closed. */
+  toggleArtifacts(): void {
+    if (this.snapshot.artifacts === 0) this.openArtifacts()
+    else this.closeArtifacts()
+  }
+
   /** @param width - requested sidebar width from a resize gesture. */
   setSidebar(width: number): void {
     this.publish({ ...this.snapshot, sidebar: clamp(width, SIDEBAR_MIN, SIDEBAR_MAX) })
@@ -116,6 +170,11 @@ export class DesktopLayoutState {
   /** @param width - requested details width from a resize gesture. */
   setDetails(width: number): void {
     this.publish({ ...this.snapshot, details: clamp(width, DETAILS_MIN, DETAILS_MAX) })
+  }
+
+  /** @param width - requested artifacts/code panel width from a resize gesture. */
+  setArtifacts(width: number): void {
+    this.publish({ ...this.snapshot, artifacts: clamp(width, ARTIFACTS_MIN, ARTIFACTS_MAX) })
   }
 
   private publish(next: DesktopLayoutSnapshot): void {

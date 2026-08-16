@@ -17,7 +17,7 @@ export interface AdvancedFrameInjected {
 
 /** Full advanced root slot props. */
 export type AdvancedFrameProps = PropsRuntime<'root'>
-  & PropsRenderSlots<'sidebar' | 'conversation' | 'details' | 'shell.overlay'>
+  & PropsRenderSlots<'sidebar' | 'conversation' | 'details' | 'sidebar.marketplace' | 'sidebar.skins' | 'artifacts' | 'shell.overlay'>
   & AdvancedFrameInjected
 
 /** Desktop-owned transparent frame around the unchanged product surfaces. */
@@ -60,6 +60,7 @@ export function AdvancedFrame({ layout, platform, renderSlot, useSessions }: Adv
     sidebarPreference,
     detailsSession === undefined ? 0 : panels.details,
     platform === 'darwin' ? MACOS_SIDEBAR_COLLAPSED : SIDEBAR_COLLAPSED,
+    panels.artifacts,
   )
 
   return (
@@ -68,17 +69,72 @@ export function AdvancedFrame({ layout, platform, renderSlot, useSessions }: Adv
       className="dshDesktopFrame"
       data-desktop-platform={platform}
       data-sidebar-collapsed={collapsed || undefined}
-      style={{ gridTemplateColumns: `${columns.sidebar}px minmax(0, 1fr) ${columns.details}px` }}
+      style={{ gridTemplateColumns: `${columns.sidebar}px minmax(0, 1fr) ${columns.details}px ${columns.artifacts}px` }}
     >
       {platform === 'darwin' && <div className="dshDesktopMacCaptionRow" aria-hidden="true" />}
       {platform === 'win32' && <div className="dshDesktopWindowsCaptionRow" aria-hidden="true" />}
       <aside className="dshDesktopSidebarSurface">
-        <div className="dshDesktopUpstreamSidebar">
-          {renderSlot('sidebar', { collapsed, width: columns.sidebar })}
+        <nav className="dshDesktopSidebarRail" aria-label="桌面导航">
+          <button
+            type="button"
+            className="dshDesktopRailButton"
+            data-active={panels.leftPanel === 'chat' || undefined}
+            title="对话"
+            aria-label="对话"
+            aria-pressed={panels.leftPanel === 'chat'}
+            onClick={() => { layout.setLeftPanel('chat') }}
+          >
+            对话
+          </button>
+          <button
+            type="button"
+            className="dshDesktopRailButton"
+            data-active={panels.leftPanel === 'marketplace' || undefined}
+            title="插件市场"
+            aria-label="插件市场"
+            aria-pressed={panels.leftPanel === 'marketplace'}
+            onClick={() => { layout.setLeftPanel('marketplace') }}
+          >
+            市场
+          </button>
+          <button
+            type="button"
+            className="dshDesktopRailButton"
+            data-active={panels.leftPanel === 'skins' || undefined}
+            title="皮肤"
+            aria-label="皮肤"
+            aria-pressed={panels.leftPanel === 'skins'}
+            onClick={() => { layout.setLeftPanel('skins') }}
+          >
+            皮肤
+          </button>
+          <button
+            type="button"
+            className="dshDesktopRailButton dshDesktopRailArtifacts"
+            data-active={panels.artifacts > 0 || undefined}
+            title="产物与代码"
+            aria-label="产物与代码"
+            aria-pressed={panels.artifacts > 0}
+            onClick={() => { layout.toggleArtifacts() }}
+          >
+            产物
+          </button>
+        </nav>
+        <div className="dshDesktopSidebarPanel">
+          {panels.leftPanel === 'chat' && (
+            <div className="dshDesktopUpstreamSidebar">
+              {renderSlot('sidebar', { collapsed, width: columns.sidebar })}
+            </div>
+          )}
+          {panels.leftPanel === 'marketplace' && renderSlot('sidebar.marketplace', {})}
+          {panels.leftPanel === 'skins' && renderSlot('sidebar.skins', {})}
         </div>
       </aside>
       <main className="dshDesktopConversationSurface">{renderSlot('conversation', {})}</main>
       <aside className="dshDesktopDetailsSurface">{renderSlot('details', {})}</aside>
+      {columns.artifacts > 0 && (
+        <aside className="dshDesktopArtifactsSurface">{renderSlot('artifacts', {})}</aside>
+      )}
       <div className="dshDesktopOverlay" data-shell-overlay>
         {renderSlot('shell.overlay', {})}
       </div>
@@ -98,11 +154,19 @@ export function AdvancedFrame({ layout, platform, renderSlot, useSessions }: Adv
           onResize={(width) => { layout.setDetails(width) }}
         />
       )}
+      {columns.artifacts > 0 && (
+        <ResizeHandle
+          side="artifacts"
+          left={viewport - columns.artifacts}
+          size={columns.artifacts}
+          onResize={(width) => { layout.setArtifacts(width) }}
+        />
+      )}
     </div>
   )
 }
 
-function ResizeHandle(props: { side: 'sidebar' | 'details'; left: number; size: number; onResize: (width: number) => void }) {
+function ResizeHandle(props: { side: 'sidebar' | 'details' | 'artifacts'; left: number; size: number; onResize: (width: number) => void }) {
   const origin = useRef(0)
   const base = useRef(0)
   const onPointerDown = useCallback((event: React.PointerEvent<HTMLDivElement>) => {

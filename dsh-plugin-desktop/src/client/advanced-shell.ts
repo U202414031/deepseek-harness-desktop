@@ -7,6 +7,10 @@ import { DesktopLayoutState } from './layout-state.ts'
 import { provideDesktopLayout } from './layout-service.ts'
 import { installAdvancedStyles } from './styles.ts'
 import { DesktopThemePresenter } from './theme-presenter.ts'
+import { MarketplacePanel } from './features/marketplace/MarketplacePanel.tsx'
+import { SkinsPanel } from './features/skins/SkinsPanel.tsx'
+import { ArtifactsPanel } from './features/artifacts/ArtifactsPanel.tsx'
+import { applySkin, getSkin } from './features/skins/skin-service.ts'
 
 /**
  * Provide the advanced layout service and own the desktop root slot.
@@ -45,14 +49,26 @@ export function applyAdvancedShell(ctx: ClientContext, environment: DesktopClien
     }
   }, 'desktop: theme presenter')
 
+  // Restore the user's previously selected skin on every advanced-shell boot.
+  ctx.effect(() => { applySkin(getSkin()) }, 'desktop: skin restore')
+
   ctx.effect(() => ctx.slots.register({
     name: 'root',
     children: {
       'sidebar': { kind: 'single', scope: 'root' },
       'conversation': { kind: 'single', scope: 'session-maybe' },
       'details': { kind: 'single', scope: 'session' },
+      'sidebar.marketplace': { kind: 'single', scope: 'root' },
+      'sidebar.skins': { kind: 'single', scope: 'root' },
+      'artifacts': { kind: 'single', scope: 'session' },
       'shell.overlay': { kind: 'list', scope: 'root' },
     },
     inject: () => ({ layout: desktopLayout, platform: environment.platform }),
   }, AdvancedFrame), 'desktop: advanced root slot')
+
+  // Desktop-owned surfaces contributed into the advanced root slot (after the
+  // root declaration so the child seats already exist).
+  ctx.effect(() => ctx.slots.register({ name: 'sidebar.marketplace' }, MarketplacePanel), 'desktop: marketplace surface')
+  ctx.effect(() => ctx.slots.register({ name: 'sidebar.skins' }, SkinsPanel), 'desktop: skins surface')
+  ctx.effect(() => ctx.slots.register({ name: 'artifacts' }, ArtifactsPanel), 'desktop: artifacts surface')
 }
