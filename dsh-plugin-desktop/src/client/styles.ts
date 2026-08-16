@@ -318,6 +318,36 @@ a.dshDesktopApiLink.dshDesktopSecondaryButton { color: var(--dsh-desktop-fg); }
 .dshDesktopArtifactTool { font-size: 12px; font-weight: 600; }
 .dshDesktopArtifactError { font-size: 10px; padding: 2px 6px; border-radius: 999px; background: #fde8eb; color: #d6455a; }
 .dshDesktopArtifactText { margin: 0; padding: 10px 12px; max-height: 280px; overflow: auto; font-size: 12px; line-height: 1.5; white-space: pre-wrap; }
+
+/* ---- External tools (left panel) ---- */
+.dshDesktopTools { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 12px; padding: 14px 16px; overflow-y: auto; }
+.dshDesktopToolsTabs { display: flex; gap: 6px; }
+.dshDesktopToolsTab { flex: 1 1 0; padding: 7px 4px; border: 1px solid var(--dsh-desktop-border); border-radius: 9px; background: var(--dsh-desktop-surface); color: var(--dsh-desktop-fg-muted); font-size: 12px; cursor: pointer; -webkit-app-region: no-drag; transition: border-color .15s, color .15s; }
+.dshDesktopToolsTab[data-active] { font-weight: 600; background: var(--dsh-desktop-surface-2); }
+.dshDesktopToolsCard { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border: 1px solid var(--dsh-desktop-border); border-radius: 12px; background: var(--dsh-desktop-surface); }
+.dshDesktopToolsStatus { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--dsh-desktop-fg-muted); }
+.dshDesktopToolsStatus b { font-weight: 600; }
+.dshDesktopToolsStatus b[data-status="connected"] { color: #1f9d55; }
+.dshDesktopToolsStatus b[data-status="error"] { color: #d6455a; }
+.dshDesktopToolsNote { font-size: 11px; line-height: 1.5; color: var(--dsh-desktop-fg-muted); margin: 0; }
+.dshDesktopToolsDocLink { font-size: 11px; color: var(--dsh-desktop-accent); text-decoration: none; -webkit-app-region: no-drag; }
+.dshDesktopToolsSection { margin: 2px 0 0; font-size: 13px; font-weight: 600; color: var(--dsh-desktop-fg); }
+.dshDesktopToolsSend { display: flex; gap: 8px; align-items: stretch; }
+.dshDesktopToolsSend textarea, .dshDesktopToolsSend input { flex: 1 1 auto; }
+.dshDesktopToolsTextarea { min-height: 64px; resize: vertical; font-family: inherit; }
+.dshDesktopToolsWideBtn { width: 100%; justify-content: center; }
+.dshDesktopToolsSummary { white-space: pre-wrap; font-size: 12px; line-height: 1.6; color: var(--dsh-desktop-fg); background: var(--dsh-desktop-surface-2); border-radius: 8px; padding: 8px 10px; }
+.dshDesktopToolsTasks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.dshDesktopToolsTask { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border: 1px solid var(--dsh-desktop-border); border-radius: 8px; background: var(--dsh-desktop-surface-2); }
+.dshDesktopToolsTaskMain { display: flex; align-items: center; gap: 8px; flex: 1 1 auto; font-size: 12px; color: var(--dsh-desktop-fg); cursor: pointer; }
+.dshDesktopToolsTaskDone { text-decoration: line-through; color: var(--dsh-desktop-fg-muted); }
+.dshDesktopToolsTaskDel { border: 0; background: transparent; color: var(--dsh-desktop-fg-muted); font-size: 16px; line-height: 1; cursor: pointer; -webkit-app-region: no-drag; }
+.dshDesktopToolsTaskDel:hover { color: #d6455a; }
+.dshDesktopToolsMessages { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; max-height: 260px; overflow-y: auto; }
+.dshDesktopToolsMsg { display: flex; flex-direction: column; gap: 2px; padding: 6px 8px; border: 1px solid var(--dsh-desktop-border); border-radius: 8px; background: var(--dsh-desktop-surface-2); }
+.dshDesktopToolsMsgSender { font-size: 11px; font-weight: 600; color: var(--dsh-desktop-accent); }
+.dshDesktopToolsMsgText { font-size: 12px; color: var(--dsh-desktop-fg); white-space: pre-wrap; word-break: break-word; }
+.dshDesktopToolsInfo { font-size: 12px; color: #1f9d55; margin: 0; }
 `
 
 

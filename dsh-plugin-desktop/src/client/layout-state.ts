@@ -17,7 +17,7 @@ export interface DesktopLayoutSnapshot {
 }
 
 /** Left-surface selection rendered inside the desktop-owned sidebar column. */
-export type DesktopLeftPanel = 'chat' | 'marketplace' | 'skins' | 'api'
+export type DesktopLeftPanel = 'chat' | 'marketplace' | 'skins' | 'api' | 'tools'
 
 /** Column geometry after preserving the center surface. */
 export interface DesktopColumns {
