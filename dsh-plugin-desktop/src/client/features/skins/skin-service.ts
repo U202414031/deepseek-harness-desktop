@@ -1,4 +1,4 @@
-import { SKINS, type Skin, getSkinById as getBuiltinSkin } from './skins.ts'
+import { SKINS, type Skin, type WhaleAmbient, getSkinById as getBuiltinSkin } from './skins.ts'
 
 /** LocalStorage key holding the user's selected skin id. */
 const STORAGE_KEY = 'dsh-desktop-skin'
@@ -86,6 +86,32 @@ export function deleteCustomSkin(id: string): void {
  * uploaded JSON). Returns a ready-to-persist `Skin`, or `null` when the payload
  * is not a usable skin. A fresh id is assigned to avoid clashing with built-ins.
  */
+function parseAmbient(raw: unknown): WhaleAmbient | null {
+  if (typeof raw !== 'object' || raw === null) return null
+  const a = raw as Record<string, unknown>
+  const shape = a.shape === 'bubble' || a.shape === 'spark' || a.shape === 'star' ? a.shape : 'bubble'
+  const particle = typeof a.particle === 'string' && a.particle.length > 0 ? a.particle : '#5fe3ff'
+  const particle2 = typeof a.particle2 === 'string' && a.particle2.length > 0 ? a.particle2 : undefined
+  const glow = typeof a.glow === 'string' && a.glow.length > 0 ? a.glow : 'rgba(95,227,255,0.5)'
+  const density = typeof a.density === 'number' && a.density > 0 ? Math.min(400, Math.round(a.density)) : 100
+  const speed = typeof a.speed === 'number' && a.speed > 0 ? a.speed : 0.5
+  const mascot = a.mascot !== false
+  let bgWash: WhaleAmbient['bgWash'] | undefined
+  if (typeof a.bgWash === 'object' && a.bgWash !== null) {
+    const w = a.bgWash as Record<string, unknown>
+    if (typeof w.from === 'string' && typeof w.to === 'string') {
+      bgWash = { from: w.from, to: w.to, kind: w.kind === 'linear' ? 'linear' : 'radial' }
+    }
+  }
+  const bgWashAlpha = typeof a.bgWashAlpha === 'number' ? Math.max(0, Math.min(1, a.bgWashAlpha)) : 0.4
+  const bgImage = typeof a.bgImage === 'string' && a.bgImage.length > 0 ? a.bgImage : undefined
+  const ambient: WhaleAmbient = { particle, glow, density, shape, speed, mascot, bgWashAlpha }
+  if (particle2 !== undefined) ambient.particle2 = particle2
+  if (bgWash !== undefined) ambient.bgWash = bgWash
+  if (bgImage !== undefined) ambient.bgImage = bgImage
+  return ambient
+}
+
 export function parseImportedSkin(raw: unknown): Skin | null {
   if (typeof raw !== 'object' || raw === null) return null
   const record = raw as Record<string, unknown>
@@ -99,12 +125,22 @@ export function parseImportedSkin(raw: unknown): Skin | null {
   if (Object.keys(normalized).length === 0) return null
   const label = typeof record.label === 'string' && record.label.trim().length > 0 ? record.label.trim() : '导入的皮肤'
   const description = typeof record.description === 'string' ? record.description : '从外部导入的自定义皮肤。'
-  return { id: `import-${Date.now().toString(36)}`, label, description, variables: normalized, custom: true }
+  const parsedAmbient = record.ambient !== undefined ? parseAmbient(record.ambient) : null
+  const skin: Skin = { id: `import-${Date.now().toString(36)}`, label, description, variables: normalized, custom: true }
+  if (parsedAmbient !== null) skin.ambient = parsedAmbient
+  return skin
 }
 
 /** Serialize a skin definition to a portable JSON string for export. */
 export function exportCustomSkin(skin: Skin): string {
-  return JSON.stringify({ id: skin.id, label: skin.label, description: skin.description, variables: skin.variables }, null, 2)
+  const payload: Record<string, unknown> = {
+    id: skin.id,
+    label: skin.label,
+    description: skin.description,
+    variables: skin.variables,
+  }
+  if (skin.ambient !== undefined) payload.ambient = skin.ambient
+  return JSON.stringify(payload, null, 2)
 }
 
 /** Select a skin by id, persist it, and apply its tokens to the document. */
@@ -146,6 +182,7 @@ interface StoredSkin {
   label: string
   description: string
   variables: Record<string, string>
+  ambient?: WhaleAmbient
   custom?: boolean
 }
 

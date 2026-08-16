@@ -11,6 +11,7 @@ import { MarketplacePanel } from './features/marketplace/MarketplacePanel.tsx'
 import { SkinsPanel } from './features/skins/SkinsPanel.tsx'
 import { ArtifactsPanel } from './features/artifacts/ArtifactsPanel.tsx'
 import { applySkin, getSkin } from './features/skins/skin-service.ts'
+import { startWhaleAmbient } from './features/skins/whale-ambient.ts'
 
 /**
  * Provide the advanced layout service and own the desktop root slot.
@@ -55,6 +56,10 @@ export function applyAdvancedShell(ctx: ClientContext, environment: DesktopClien
     return () => {}
   }, 'desktop: skin restore')
 
+  // Whale-girl ambient particle layer: active only for skins that declare an
+  // `ambient` block; follows the cursor so particles converge where you point.
+  ctx.effect(() => startWhaleAmbient(), 'desktop: whale ambient')
+
   ctx.effect(() => ctx.slots.register({
     name: 'root',
     children: {
@@ -73,5 +78,5 @@ export function applyAdvancedShell(ctx: ClientContext, environment: DesktopClien
   // root declaration so the child seats already exist).
   ctx.effect(() => ctx.slots.register({ name: 'sidebar.marketplace' }, MarketplacePanel), 'desktop: marketplace surface')
   ctx.effect(() => ctx.slots.register({ name: 'sidebar.skins' }, SkinsPanel), 'desktop: skins surface')
-  ctx.effect(() => ctx.slots.register({ name: 'artifacts', inject: () => ({ layout: desktopLayout }) }, ArtifactsPanel), 'desktop: artifacts surface')
+  ctx.effect(() => ctx.slots.register({ name: 'artifacts' }, ArtifactsPanel), 'desktop: artifacts surface')
 }

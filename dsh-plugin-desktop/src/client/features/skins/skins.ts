@@ -15,6 +15,42 @@ export interface Skin {
   variables: Record<string, string>
   /** True for skins the user created themselves (persisted separately). */
   custom?: boolean
+  /**
+   * Optional "atmosphere" layer. When present, the desktop renders a themed
+   * particle field (the 鲸鱼娘 / whale-girl motif) that drifts across the
+   * surface and converges toward the cursor. Skins without this field stay
+   * perfectly still, so built-in utility palettes never pay the animation cost.
+   */
+  ambient?: WhaleAmbient
+}
+
+/**
+ * Particle-field configuration for an atmospheric skin.
+ * Colors are any CSS color string; the engine derives glow sprites from them.
+ */
+export interface WhaleAmbient {
+  /** Primary particle color. */
+  particle: string
+  /** Optional secondary color; particles are tinted along a `particle → particle2` gradient. */
+  particle2?: string
+  /** Glow color used for the cursor-following "whale aura". */
+  glow: string
+  /** Base particle count before screen-area scaling (clamped at runtime). */
+  density: number
+  /** Particle behaviour: `bubble` rises, `spark` twinkles, `star` drifts. */
+  shape: 'bubble' | 'spark' | 'star'
+  /** Global motion-speed multiplier. */
+  speed: number
+  /** Whether a large soft aura trails the cursor (the whale-girl's presence). */
+  mascot: boolean
+  /** Optional full-window color wash painted beneath the particles. */
+  bgWash?: { from: string; to: string; kind?: 'radial' | 'linear' }
+  /** Opacity of `bgWash`, kept low (≤ ~0.5) to protect text readability. */
+  bgWashAlpha: number
+  /** Optional full-window whale-girl backdrop image (any CSS url, including
+   *  `file://` paths or data URIs). When set, the desktop surfaces adopt a
+   *  frosted-glass treatment so the artwork shows through. */
+  bgImage?: string
 }
 
 /**
@@ -188,6 +224,181 @@ export const SKINS: readonly Skin[] = Object.freeze([
       '--dsw-alias-border-l1': '#353a41',
       '--dsw-alias-border-l2': '#353a41',
       '--dsw-alias-accent': '#3fb6c4',
+    },
+  },
+  {
+    id: 'whale-abyss',
+    label: '深海蓝鲸',
+    description: 'DeepSeek 深蓝鲸鱼娘：幽蓝海底与荧光气泡，粒子随光标汇聚。',
+    variables: {
+      '--dsh-desktop-bg': '#06121f',
+      '--dsh-desktop-surface': '#0b2236',
+      '--dsh-desktop-surface-2': '#103049',
+      '--dsh-desktop-fg': '#dff1ff',
+      '--dsh-desktop-fg-muted': '#7fa8c9',
+      '--dsh-desktop-border': '#163a55',
+      '--dsh-desktop-accent': '#36c9ff',
+      '--dsh-desktop-accent-fg': '#04141f',
+      '--dsh-desktop-code-bg': '#08263b',
+      '--dsw-alias-bg-base': '#06121f',
+      '--dsw-alias-bg-elevated': '#0b2236',
+      '--dsw-alias-fg-base': '#dff1ff',
+      '--dsw-alias-fg-muted': '#7fa8c9',
+      '--dsw-alias-border-l1': '#163a55',
+      '--dsw-alias-border-l2': '#163a55',
+      '--dsw-alias-accent': '#36c9ff',
+    },
+    ambient: {
+      particle: '#5fe3ff',
+      particle2: '#7fa8ff',
+      glow: 'rgba(95,227,255,0.55)',
+      density: 115,
+      shape: 'bubble',
+      speed: 0.5,
+      mascot: true,
+      bgWash: { from: '#0a2a44', to: '#06121f', kind: 'radial' },
+      bgWashAlpha: 0.42,
+      bgImage: 'file:///D:/WorkBuddy/deepseek-desk/whale-skins/bg/whale-abyss.jpg',
+    },
+  },
+  {
+    id: 'whale-aurora',
+    label: '极光鲸歌',
+    description: '鲸鱼娘游过极光带：青绿与紫罗兰的流光粒子。',
+    variables: {
+      '--dsh-desktop-bg': '#0a1026',
+      '--dsh-desktop-surface': '#141a38',
+      '--dsh-desktop-surface-2': '#1c2347',
+      '--dsh-desktop-fg': '#e6ecff',
+      '--dsh-desktop-fg-muted': '#8a93c8',
+      '--dsh-desktop-border': '#26305c',
+      '--dsh-desktop-accent': '#6ad0c4',
+      '--dsh-desktop-accent-fg': '#06121f',
+      '--dsh-desktop-code-bg': '#0d1430',
+      '--dsw-alias-bg-base': '#0a1026',
+      '--dsw-alias-bg-elevated': '#141a38',
+      '--dsw-alias-fg-base': '#e6ecff',
+      '--dsw-alias-fg-muted': '#8a93c8',
+      '--dsw-alias-border-l1': '#26305c',
+      '--dsw-alias-border-l2': '#26305c',
+      '--dsw-alias-accent': '#6ad0c4',
+    },
+    ambient: {
+      particle: '#6ad0c4',
+      particle2: '#b98cff',
+      glow: 'rgba(120,170,255,0.5)',
+      density: 100,
+      shape: 'spark',
+      speed: 0.55,
+      mascot: true,
+      bgWash: { from: '#13204a', to: '#0a1026', kind: 'linear' },
+      bgWashAlpha: 0.38,
+      bgImage: 'file:///D:/WorkBuddy/deepseek-desk/whale-skins/bg/whale-aurora.jpg',
+    },
+  },
+  {
+    id: 'whale-dawn',
+    label: '晨曦鲸跃',
+    description: '鲸鱼娘跃出海面的清晨：暖橙与樱粉的柔光气泡。',
+    variables: {
+      '--dsh-desktop-bg': '#fff2ea',
+      '--dsh-desktop-surface': '#fffaf6',
+      '--dsh-desktop-surface-2': '#ffe6d8',
+      '--dsh-desktop-fg': '#3a2a26',
+      '--dsh-desktop-fg-muted': '#9a7b6e',
+      '--dsh-desktop-border': '#f3d9cc',
+      '--dsh-desktop-accent': '#ff8a5b',
+      '--dsh-desktop-accent-fg': '#ffffff',
+      '--dsh-desktop-code-bg': '#ffe9dc',
+      '--dsw-alias-bg-base': '#fff2ea',
+      '--dsw-alias-bg-elevated': '#fffaf6',
+      '--dsw-alias-fg-base': '#3a2a26',
+      '--dsw-alias-fg-muted': '#9a7b6e',
+      '--dsw-alias-border-l1': '#f3d9cc',
+      '--dsw-alias-border-l2': '#f3d9cc',
+      '--dsw-alias-accent': '#ff8a5b',
+    },
+    ambient: {
+      particle: '#ffb38a',
+      particle2: '#ff8ac0',
+      glow: 'rgba(255,160,120,0.4)',
+      density: 80,
+      shape: 'bubble',
+      speed: 0.45,
+      mascot: true,
+      bgWash: { from: '#ffe3d0', to: '#fff3ec', kind: 'linear' },
+      bgWashAlpha: 0.3,
+      bgImage: 'file:///D:/WorkBuddy/deepseek-desk/whale-skins/bg/whale-dawn.jpg',
+    },
+  },
+  {
+    id: 'whale-star',
+    label: '星海鲸游',
+    description: '鲸鱼娘遨游星海：近黑深空与星座般的星点粒子。',
+    variables: {
+      '--dsh-desktop-bg': '#05060f',
+      '--dsh-desktop-surface': '#0b0d1c',
+      '--dsh-desktop-surface-2': '#12152b',
+      '--dsh-desktop-fg': '#e8ecff',
+      '--dsh-desktop-fg-muted': '#7c84b8',
+      '--dsh-desktop-border': '#1b2042',
+      '--dsh-desktop-accent': '#8b7bff',
+      '--dsh-desktop-accent-fg': '#05060f',
+      '--dsh-desktop-code-bg': '#080a16',
+      '--dsw-alias-bg-base': '#05060f',
+      '--dsw-alias-bg-elevated': '#0b0d1c',
+      '--dsw-alias-fg-base': '#e8ecff',
+      '--dsw-alias-fg-muted': '#7c84b8',
+      '--dsw-alias-border-l1': '#1b2042',
+      '--dsw-alias-border-l2': '#1b2042',
+      '--dsw-alias-accent': '#8b7bff',
+    },
+    ambient: {
+      particle: '#bcd0ff',
+      particle2: '#c79bff',
+      glow: 'rgba(150,170,255,0.5)',
+      density: 135,
+      shape: 'star',
+      speed: 0.35,
+      mascot: true,
+      bgWash: { from: '#10143a', to: '#05060f', kind: 'radial' },
+      bgWashAlpha: 0.5,
+      bgImage: 'file:///D:/WorkBuddy/deepseek-desk/whale-skins/bg/whale-star.jpg',
+    },
+  },
+  {
+    id: 'whale-mint',
+    label: '薄荷气泡',
+    description: '清新鲸鱼娘：薄荷绿与浅青的灵动气泡海洋。',
+    variables: {
+      '--dsh-desktop-bg': '#eafaf6',
+      '--dsh-desktop-surface': '#ffffff',
+      '--dsh-desktop-surface-2': '#d9f5ee',
+      '--dsh-desktop-fg': '#1f3a34',
+      '--dsh-desktop-fg-muted': '#5f8c81',
+      '--dsh-desktop-border': '#c4ece1',
+      '--dsh-desktop-accent': '#2bc4a0',
+      '--dsh-desktop-accent-fg': '#ffffff',
+      '--dsh-desktop-code-bg': '#dff7f0',
+      '--dsw-alias-bg-base': '#eafaf6',
+      '--dsw-alias-bg-elevated': '#ffffff',
+      '--dsw-alias-fg-base': '#1f3a34',
+      '--dsw-alias-fg-muted': '#5f8c81',
+      '--dsw-alias-border-l1': '#c4ece1',
+      '--dsw-alias-border-l2': '#c4ece1',
+      '--dsw-alias-accent': '#2bc4a0',
+    },
+    ambient: {
+      particle: '#6ff0cf',
+      particle2: '#8fe0ff',
+      glow: 'rgba(80,220,190,0.4)',
+      density: 85,
+      shape: 'bubble',
+      speed: 0.5,
+      mascot: true,
+      bgWash: { from: '#d6f3ec', to: '#eafaf6', kind: 'linear' },
+      bgWashAlpha: 0.3,
+      bgImage: 'file:///D:/WorkBuddy/deepseek-desk/whale-skins/bg/whale-mint.jpg',
     },
   },
 ])

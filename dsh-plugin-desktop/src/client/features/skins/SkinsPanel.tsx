@@ -145,7 +145,10 @@ export function SkinsPanel(): JSX.Element {
                     <span style={{ background: skin.variables['--dsh-desktop-fg'] ?? 'transparent' }} />
                   </span>
                   <span className="dshDesktopSkinMeta">
-                    <span className="dshDesktopSkinName">{skin.label}</span>
+                    <span className="dshDesktopSkinNameRow">
+                      <span className="dshDesktopSkinName">{skin.label}</span>
+                      {skin.ambient && <span className="dshDesktopSkinTag" title="带粒子氛围特效">✨ 氛围</span>}
+                    </span>
                     <span className="dshDesktopSkinDesc">{skin.description}</span>
                   </span>
                   {selected && <span className="dshDesktopSkinBadge">使用中</span>}

@@ -45,6 +45,8 @@ export const DETAILS_MAX = 520
 export const ARTIFACTS_DEFAULT = 360
 export const ARTIFACTS_MIN = 300
 export const ARTIFACTS_MAX = 560
+/** Reserved width of the always-present right-edge control rail, mirroring the sidebar rail. */
+export const ARTIFACTS_RAIL = 56
 export const CENTER_MIN = 640
 
 /**
@@ -66,7 +68,11 @@ export function computeDesktopColumns(
 ): DesktopColumns {
   const sidebarWidth = sidebar === 0 ? collapsedWidth : clamp(sidebar, SIDEBAR_MIN, SIDEBAR_MAX)
   const preferredDetails = details === 0 ? 0 : clamp(details, DETAILS_MIN, DETAILS_MAX)
-  const preferredArtifacts = artifacts === 0 ? 0 : clamp(artifacts, ARTIFACTS_MIN, ARTIFACTS_MAX)
+  const artifactsOpen = artifacts > 0
+  const preferredArtifactsContent = artifactsOpen ? clamp(artifacts, ARTIFACTS_MIN, ARTIFACTS_MAX) : 0
+  // The artifacts column always reserves the rail, mirroring the sidebar rail so the
+  // right-edge controls stay reachable even when the panel content is closed.
+  const preferredArtifacts = ARTIFACTS_RAIL + preferredArtifactsContent
   if (sidebarWidth + preferredDetails + preferredArtifacts + CENTER_MIN <= viewport) {
     return {
       sidebar: sidebarWidth,
@@ -75,19 +81,24 @@ export function computeDesktopColumns(
       artifacts: preferredArtifacts,
     }
   }
-  const reducedArtifacts = preferredArtifacts === 0
-    ? 0
-    : Math.max(ARTIFACTS_MIN, viewport - sidebarWidth - preferredDetails - CENTER_MIN)
-  if (sidebarWidth + preferredDetails + reducedArtifacts + CENTER_MIN <= viewport) {
-    return { sidebar: sidebarWidth, center: CENTER_MIN, details: preferredDetails, artifacts: reducedArtifacts }
+  // Shrink artifacts content to its minimum while keeping the rail visible.
+  const minArtifacts = ARTIFACTS_RAIL + ARTIFACTS_MIN
+  if (artifactsOpen && sidebarWidth + preferredDetails + minArtifacts + CENTER_MIN <= viewport) {
+    return { sidebar: sidebarWidth, center: CENTER_MIN, details: preferredDetails, artifacts: minArtifacts }
   }
+  // Drop artifacts content entirely, keeping only the rail.
+  const railOnly = ARTIFACTS_RAIL
+  if (sidebarWidth + preferredDetails + railOnly + CENTER_MIN <= viewport) {
+    return { sidebar: sidebarWidth, center: CENTER_MIN, details: preferredDetails, artifacts: railOnly }
+  }
+  // Shrink details before giving up on the artifacts rail.
   const reducedDetails = preferredDetails === 0
     ? 0
-    : Math.max(DETAILS_MIN, viewport - sidebarWidth - reducedArtifacts - CENTER_MIN)
-  if (sidebarWidth + reducedDetails + reducedArtifacts + CENTER_MIN <= viewport) {
-    return { sidebar: sidebarWidth, center: CENTER_MIN, details: reducedDetails, artifacts: reducedArtifacts }
+    : Math.max(DETAILS_MIN, viewport - sidebarWidth - railOnly - CENTER_MIN)
+  if (sidebarWidth + reducedDetails + railOnly + CENTER_MIN <= viewport) {
+    return { sidebar: sidebarWidth, center: CENTER_MIN, details: reducedDetails, artifacts: railOnly }
   }
-  return { sidebar: sidebarWidth, center: Math.max(0, viewport - sidebarWidth), details: 0, artifacts: 0 }
+  return { sidebar: sidebarWidth, center: Math.max(0, viewport - sidebarWidth - railOnly), details: 0, artifacts: railOnly }
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -151,12 +162,12 @@ export class DesktopLayoutState {
 
   /** Open the artifacts/code panel at its default width. */
   openArtifacts(): void {
-    if (this.snapshot.artifacts === 0) this.publish({ ...this.snapshot, artifacts: ARTIFACTS_DEFAULT })
+    if (this.snapshot.artifacts === 0) this.publish({ ...this.snapshot, artifacts: ARTIFACTS_DEFAULT, artifactsExpanded: false })
   }
 
   /** Close the artifacts/code panel while keeping its slot mounted. */
   closeArtifacts(): void {
-    if (this.snapshot.artifacts !== 0) this.publish({ ...this.snapshot, artifacts: 0 })
+    if (this.snapshot.artifacts !== 0) this.publish({ ...this.snapshot, artifacts: 0, artifactsExpanded: false })
   }
 
   /** Toggle the artifacts/code panel open/closed. */

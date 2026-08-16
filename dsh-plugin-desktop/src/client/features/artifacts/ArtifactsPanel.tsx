@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { ConversationSnapshot } from '@deepseek-ai/dsh-client-runtime/client'
 import type { PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
-import type { DesktopLayoutState } from '../../layout-state.ts'
 
 interface CodeItem {
   language: string
@@ -22,7 +21,7 @@ interface Extracted {
 }
 
 /** Desktop-owned artifacts/code panel rendered in the right column. */
-export function ArtifactsPanel({ useSession, layout }: PropsRuntime<'artifacts'> & { layout: DesktopLayoutState }): JSX.Element {
+export function ArtifactsPanel({ useSession }: PropsRuntime<'artifacts'>): JSX.Element {
   const snapshot = useSession((s) => s)
   const extracted = useMemo(() => extractArtifacts(snapshot), [snapshot])
   const [tab, setTab] = useState<'code' | 'artifacts'>('code')
@@ -31,26 +30,6 @@ export function ArtifactsPanel({ useSession, layout }: PropsRuntime<'artifacts'>
     <div className="dshDesktopArtifacts">
       <header className="dshDesktopFeatureHeader dshDesktopArtifactsHeader">
         <h2 className="dshDesktopFeatureTitle">产物与代码</h2>
-        <div className="dshDesktopArtifactsActions">
-          <button
-            type="button"
-            className="dshDesktopSecondaryButton"
-            aria-label="放大或还原面板"
-            title="放大 / 还原"
-            onClick={() => { layout.toggleArtifactsExpanded() }}
-          >
-            放大
-          </button>
-          <button
-            type="button"
-            className="dshDesktopSecondaryButton"
-            aria-label="收起面板"
-            title="收起"
-            onClick={() => { layout.closeArtifacts() }}
-          >
-            收起
-          </button>
-        </div>
       </header>
       <div className="dshDesktopArtifactsTabs" role="tablist">
         <button
@@ -126,11 +105,11 @@ function EmptyState({ text }: { text: string }): JSX.Element {
   return <p className="dshDesktopEmptyState">{text}</p>
 }
 
-function extractArtifacts(snapshot: ConversationSnapshot): Extracted {
+function extractArtifacts(snapshot: ConversationSnapshot | undefined): Extracted {
   const code: CodeItem[] = []
   const artifacts: ArtifactItem[] = []
   const fenced = /```(\w+)?\n([\s\S]*?)```/g
-  for (const node of snapshot.nodes) {
+  for (const node of snapshot?.nodes ?? []) {
     if (node.kind === 'assistant') {
       for (const block of node.blocks) {
         if ((block.kind === 'text' || block.kind === 'reasoning') && typeof block.text === 'string') {

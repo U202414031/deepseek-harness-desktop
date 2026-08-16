@@ -34,6 +34,25 @@ body[data-dsh-desktop-mode="advanced"] { margin: 0; background: transparent !imp
 .dshDesktopFrame[data-sidebar-collapsed] { transition: grid-template-columns var(--ds-transition-duration-slow) var(--ds-ease-in-out); }
 .dshDesktopOverlay { position: absolute; z-index: 1000; inset: 0; pointer-events: none; }
 .dshDesktopOverlay > * { pointer-events: auto; }
+/* Whale-girl ambient particle layer: a full-window canvas above the chrome but
+   below modal overlays (z 1000), with no pointer interception. */
+.dshDesktopWhaleAmbient { position: fixed; inset: 0; z-index: 600; pointer-events: none; }
+/* Full-window whale-girl backdrop, painted behind the app frame. */
+.dshDesktopWhaleBg { position: fixed; inset: 0; z-index: -1; pointer-events: none; background-size: cover; background-position: center; background-repeat: no-repeat; }
+/* When a skin supplies a backdrop image, turn the desktop surfaces into frosted
+   glass so the artwork shows through instead of a flat fill. */
+:root[data-skin][data-whale-bg] .dshDesktopSidebarSurface,
+:root[data-skin][data-whale-bg] .dshDesktopConversationSurface,
+:root[data-skin][data-whale-bg] .dshDesktopDetailsSurface,
+:root[data-skin][data-whale-bg] .dshDesktopArtifactsSurface,
+:root[data-skin][data-whale-bg] .dshDesktopMacCaptionRow,
+:root[data-skin][data-whale-bg] .dshDesktopWindowsCaptionRow,
+:root[data-skin][data-whale-bg] .dshDesktopSidebarRail,
+:root[data-skin][data-whale-bg] .dshDesktopSidebarPanel {
+  background: color-mix(in srgb, var(--dsh-desktop-bg) 68%, transparent) !important;
+  -webkit-backdrop-filter: blur(15px) saturate(1.05);
+  backdrop-filter: blur(15px) saturate(1.05);
+}
 .dshDesktopResizeHandle { position: absolute; z-index: 50; top: 0; bottom: 0; width: 8px; margin-left: -4px; cursor: col-resize; touch-action: none; -webkit-app-region: no-drag; }
 .dshDesktopNoDrag, button, input, textarea, select, a, [role="button"], [role="dialog"], [role="presentation"] { -webkit-app-region: no-drag; }
 [role="dialog"], [aria-modal="true"] { -webkit-app-region: no-drag !important; }
@@ -180,6 +199,8 @@ html:has([aria-modal="true"]) .dshDesktopSidebarSurface::before { -webkit-app-re
 .dshDesktopSkinSwatch span { display: block; }
 .dshDesktopSkinMeta { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; }
 .dshDesktopSkinName { font-weight: 600; font-size: 13px; color: var(--dsh-desktop-fg); }
+.dshDesktopSkinNameRow { display: flex; align-items: center; gap: 6px; }
+.dshDesktopSkinTag { font-size: 10px; padding: 1px 7px; border-radius: 999px; background: var(--dsh-desktop-surface-2); color: var(--dsh-desktop-accent); border: 1px solid var(--dsh-desktop-border); }
 .dshDesktopSkinDesc { font-size: 11px; color: var(--dsh-desktop-fg-muted); }
 .dshDesktopSkinBadge { flex: 0 0 auto; font-size: 10px; padding: 2px 6px; border-radius: 999px; background: var(--dsh-desktop-accent); color: var(--dsh-desktop-accent-fg); }
 
@@ -194,15 +215,15 @@ html:has([aria-modal="true"]) .dshDesktopSidebarSurface::before { -webkit-app-re
 .dshDesktopColorField input[type="color"] { width: 36px; height: 28px; padding: 0; border: 1px solid var(--dsh-desktop-border); border-radius: 8px; background: none; cursor: pointer; }
 
 /* ---- Artifacts / code right panel ---- */
-.dshDesktopArtifactsSurface { grid-column: 4; grid-row: 1; min-width: 0; min-height: 0; overflow: hidden; background: var(--dsh-desktop-bg); border-left: 1px solid var(--dsh-desktop-border); display: flex; flex-direction: column; }
+.dshDesktopFrame[data-desktop-platform="darwin"] .dshDesktopArtifactsSurface { grid-row: 1 / -1; }
+.dshDesktopArtifactsSurface { grid-column: 4; grid-row: 1; min-width: 0; min-height: 0; overflow: hidden; background: var(--dsh-desktop-bg); border-left: 1px solid var(--dsh-desktop-border); display: flex; flex-direction: row; justify-content: flex-end; }
+.dshDesktopArtifactsPanel { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--dsh-desktop-bg); }
+.dshDesktopArtifactsRail { flex: 0 0 56px; display: flex; flex-direction: column; gap: 6px; padding: 10px 0; align-items: center; background: var(--dsh-desktop-surface); border-left: 1px solid var(--dsh-desktop-border); }
 .dshDesktopArtifactsTabs { display: flex; gap: 4px; padding: 8px 12px 0; }
 .dshDesktopArtifactsTab { font-size: 12px; padding: 6px 10px; border: 1px solid transparent; border-bottom: none; border-radius: 8px 8px 0 0; background: transparent; color: var(--dsh-desktop-fg-muted); cursor: pointer; -webkit-app-region: no-drag; }
 .dshDesktopArtifactsTab[aria-selected="true"] { color: var(--dsh-desktop-fg); background: var(--dsh-desktop-surface); }
 .dshDesktopArtifactsBody { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 10px 12px; }
 .dshDesktopArtifactsHeader { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.dshDesktopArtifactsActions { display: flex; align-items: center; gap: 6px; }
-.dshDesktopArtifactsReopen { position: absolute; top: 50%; right: 0; transform: translateY(-50%); z-index: 40; writing-mode: vertical-rl; padding: 12px 4px; border: 1px solid var(--dsh-desktop-border); border-right: none; border-radius: 8px 0 0 8px; background: var(--dsh-desktop-surface); color: var(--dsh-desktop-fg); font-size: 12px; cursor: pointer; -webkit-app-region: no-drag; }
-.dshDesktopArtifactsReopen:hover { background: var(--dsh-desktop-surface-2); color: var(--dsh-desktop-fg); }
 .dshDesktopEmptyState { color: var(--dsh-desktop-fg-muted); font-size: 13px; padding: 8px; }
 .dshDesktopCodeList, .dshDesktopArtifactList { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .dshDesktopCodeCard, .dshDesktopArtifactCard { border: 1px solid var(--dsh-desktop-border); border-radius: 10px; overflow: hidden; background: var(--dsh-desktop-surface); }
