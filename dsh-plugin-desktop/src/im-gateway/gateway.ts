@@ -92,7 +92,14 @@ export class ImGateway implements ImGatewayContext {
           this.connectKeys.delete(channel.id)
         }
         const adapter = factory(channel, this)
-        await adapter.connect(channel, this)
+        // 单个通道的连接加超时保护：网络挂起时不能拖死整个保存/重连流程
+        //（否则 UI 的 busy 永远卡 true，表现为「按钮点不动」）。
+        await Promise.race([
+          adapter.connect(channel, this),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error(`连接超时（${channel.name}）`)), 20_000),
+          ),
+        ])
         next.set(channel.id, adapter)
         this.connectKeys.set(channel.id, key)
       } catch (cause) {

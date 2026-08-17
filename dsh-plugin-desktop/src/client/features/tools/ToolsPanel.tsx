@@ -94,19 +94,30 @@ interface EditorState {
   config: Record<string, string>
 }
 
-async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(path, init)
-  if (!res.ok) {
-    let msg = `请求失败（${res.status}）`
-    try {
-      const body = (await res.json()) as { error?: string }
-      if (body.error) msg = body.error
-    } catch {
-      /* ignore parse error */
+async function apiFetch<T>(path: string, init?: RequestInit, timeoutMs = 20000): Promise<T> {
+  const ctrl = new AbortController()
+  const timer = window.setTimeout(() => ctrl.abort(), timeoutMs)
+  try {
+    const res = await fetch(path, { ...init, signal: ctrl.signal })
+    if (!res.ok) {
+      let msg = `请求失败（${res.status}）`
+      try {
+        const body = (await res.json()) as { error?: string }
+        if (body.error) msg = body.error
+      } catch {
+        /* ignore parse error */
+      }
+      throw new Error(msg)
     }
-    throw new Error(msg)
+    return (await res.json()) as T
+  } catch (cause) {
+    if ((cause as Error)?.name === 'AbortError') {
+      throw new Error(`请求超时（${timeoutMs / 1000} 秒无响应），请重试`)
+    }
+    throw cause
+  } finally {
+    window.clearTimeout(timer)
   }
-  return (await res.json()) as T
 }
 
 export function ToolsPanel(): JSX.Element {

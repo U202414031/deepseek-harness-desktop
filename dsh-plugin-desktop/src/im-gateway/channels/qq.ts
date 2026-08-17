@@ -116,34 +116,59 @@ export class QqChannel implements ImChannelAdapter {
     console.log('[im-gateway:qq] connect() 完成，等待官方网关消息…')
   }
 
-  /** 获取 access_token（官方 API 鉴权）。 */
+  /** 获取 access_token（官方 API 鉴权）。带超时，避免网络挂起卡死 reload。 */
   private async ensureToken(): Promise<string> {
     if (this.token && Date.now() < this.tokenExpireAt - 60_000) return this.token
     const cred = this.cred
     if (!cred) throw new Error('QQ 机器人凭证未初始化')
-    const res = await fetch(TOKEN_URL, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ appId: cred.appId, clientSecret: cred.appSecret }),
-    })
-    const data = (await res.json()) as { access_token?: string; expires_in?: number; code?: number; message?: string }
-    if (!data.access_token) {
-      throw new Error(`获取 QQ access_token 失败: ${data.message ?? data.code ?? res.status}`)
+    const ctrl = new AbortController()
+    const timer = setTimeout(() => ctrl.abort(), 15_000)
+    try {
+      const res = await fetch(TOKEN_URL, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ appId: cred.appId, clientSecret: cred.appSecret }),
+        signal: ctrl.signal,
+      })
+      const data = (await res.json()) as { access_token?: string; expires_in?: number; code?: number; message?: string }
+      if (!data.access_token) {
+        throw new Error(`获取 QQ access_token 失败: ${data.message ?? data.code ?? res.status}`)
+      }
+      this.token = data.access_token
+      this.tokenExpireAt = Date.now() + (data.expires_in ?? 7200) * 1000
+      return this.token
+    } catch (cause) {
+      if ((cause as Error)?.name === 'AbortError') {
+        throw new Error('获取 QQ access_token 超时（15 秒），请检查网络后重试')
+      }
+      throw cause
+    } finally {
+      clearTimeout(timer)
     }
-    this.token = data.access_token
-    this.tokenExpireAt = Date.now() + (data.expires_in ?? 7200) * 1000
-    return this.token
   }
 
-  /** 取官方网关地址并建立 WebSocket 长连接。 */
+  /** 取官方网关地址并建立 WebSocket 长连接。带超时，避免网络挂起卡死 reload。 */
   private async openGateway(): Promise<void> {
     const cred = this.cred
     if (!cred || this.destroyed) return
     const token = await this.ensureToken()
     const base = cred.sandbox ? API_SANDBOX : API_PROD
-    const gwRes = await fetch(`${base}/gateway`, {
-      headers: { authorization: `QQBot ${token}` },
-    })
+    const ctrl = new AbortController()
+    const timer = setTimeout(() => ctrl.abort(), 15_000)
+    let gwRes: Response
+    try {
+      gwRes = await fetch(`${base}/gateway`, {
+        headers: { authorization: `QQBot ${token}` },
+        signal: ctrl.signal,
+      })
+    } catch (cause) {
+      if ((cause as Error)?.name === 'AbortError') {
+        throw new Error('获取 QQ 网关地址超时（15 秒），请检查网络后重试')
+      }
+      throw cause
+    } finally {
+      clearTimeout(timer)
+    }
     if (!gwRes.ok) {
       throw new Error(`获取 QQ 网关地址失败: HTTP ${gwRes.status}`)
     }
