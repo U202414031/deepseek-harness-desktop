@@ -1,9 +1,13 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { MarketplacePlugin } from './curated-registry.ts'
-import { CURATED_PLUGINS, fetchGithubPlugins, searchGithubPlugins } from './curated-registry.ts'
+import { fetchGithubPlugins, localSearch, searchGithubPlugins } from './curated-registry.ts'
+import { COMMUNITY_PLUGINS } from './community-registry.ts'
 
 /** LocalStorage key holding ids of plugins the user has installed. */
 const INSTALLED_KEY = 'dsh-desktop-installed-plugins'
+
+/** How many plugins to reveal at once; "加载更多" reveals the next batch. */
+const MARKETPLACE_PAGE = 10
 
 interface InstallResult {
   ok: boolean
@@ -14,50 +18,73 @@ interface InstallResult {
 
 /** Desktop-owned plugin marketplace rendered in the left column. */
 export function MarketplacePanel(): JSX.Element {
-  const [plugins, setPlugins] = useState<readonly MarketplacePlugin[]>(CURATED_PLUGINS)
+  const [githubPlugins, setGithubPlugins] = useState<readonly MarketplacePlugin[]>([])
   const [loading, setLoading] = useState(false)
+  // `error` 仅用于安装/操作失败；`hint` 用于 GitHub 不可达等柔和提示（不报错、不空白）。
   const [error, setError] = useState<string | null>(null)
+  const [hint, setHint] = useState<string | null>(null)
   const [installed, setInstalled] = useState<readonly string[]>(readInstalled())
   const [busy, setBusy] = useState<string | null>(null)
   const [lastLog, setLastLog] = useState<string | null>(null)
 
-  // Search state: when `query` is non-empty we are showing GitHub search results.
+  // Search box + listing mode. Non-empty query => we are showing search results.
   const [query, setQuery] = useState('')
   const [searching, setSearching] = useState(false)
+  // 本地分页：一次只展示 `visibleCount` 个，点「加载更多」再揭示下一批（不依赖网络）。
+  const [visibleCount, setVisibleCount] = useState(MARKETPLACE_PAGE)
   const searchController = useRef<AbortController | null>(null)
+  const pageRef = useRef<number>(1)
 
-  const loadDefault = useCallback(async (signal?: AbortSignal) => {
+  // 内置社区目录永远作为底仓：默认展示 = 社区目录 + 联网拉到的 GitHub 仓库。
+  // 即便 GitHub 完全连不通，这里也至少有一份真实可用的 dsh 社区插件清单。
+  const mergedPlugins = useMemo(() => mergePlugins(COMMUNITY_PLUGINS, githubPlugins), [githubPlugins])
+  // 默认按 star 数从高到低排序，热门插件优先展示。
+  const allPlugins = useMemo(
+    () => [...mergedPlugins].sort((a, b) => (b.stars ?? 0) - (a.stars ?? 0)),
+    [mergedPlugins],
+  )
+
+  /**
+   * 加载 dsh 社区仓库（带分页）。默认先用内置目录兜底，再在后台静默尝试 GitHub：
+   * 成功则合并真实仓库；失败（502/超时/限流）则保留内置目录并给一句柔和提示，绝不空白。
+   */
+  const loadDefault = useCallback(async (reset: boolean, signal?: AbortSignal) => {
+    const next = reset ? 1 : pageRef.current + 1
     setLoading(true)
-    setError(null)
+    if (reset) { setGithubPlugins([]); setHint(null); setError(null); setVisibleCount(MARKETPLACE_PAGE) }
     try {
-      const github = await fetchGithubPlugins(signal)
-      const merged = mergePlugins(CURATED_PLUGINS, github)
-      setPlugins(merged)
+      const { items } = await fetchGithubPlugins(next, signal)
+      setGithubPlugins((prev) => (reset ? items : appendPlugins(prev, items)))
+      pageRef.current = next
     } catch (cause) {
       if (signal?.aborted) return
-      setError(cause instanceof Error ? cause.message : '无法加载 GitHub 插件列表，已回退到内置列表。')
-      setPlugins(CURATED_PLUGINS)
+      setHint('GitHub 实时列表暂不可用（可能网络无法访问 api.github.com），已为你展示内置的 dsh 社区精选插件；连通后点「刷新列表」可获取更多。')
     } finally {
       if (!signal?.aborted) setLoading(false)
     }
   }, [])
 
-  const runSearch = useCallback(async (raw: string, signal?: AbortSignal) => {
+  /**
+   * 执行搜索：本地意图搜索（localSearch）即时返回结果，不依赖网络；同时后台尝试
+   * GitHub 实时搜索并追加匹配项。GitHub 连不通时本地结果照常可用。
+   */
+  const runSearch = useCallback(async (raw: string, reset: boolean, signal?: AbortSignal) => {
     const q = raw.trim()
     if (q.length === 0) {
-      await loadDefault(signal)
+      void loadDefault(true, signal)
       return
     }
+    const next = reset ? 1 : pageRef.current + 1
     setSearching(true)
-    setError(null)
+    setHint(null)
+    if (reset) setVisibleCount(MARKETPLACE_PAGE)
     try {
-      const results = await searchGithubPlugins(q, signal)
-      setPlugins(results)
-      if (results.length === 0) setError(`GitHub 上没有找到与「${q}」相关的仓库。`)
+      const { items } = await searchGithubPlugins(q, next, signal)
+      setGithubPlugins((prev) => (reset ? items : appendPlugins(prev, items)))
+      pageRef.current = next
     } catch (cause) {
       if (signal?.aborted) return
-      setError(cause instanceof Error ? cause.message : '搜索失败，请稍后再试。')
-      setPlugins([])
+      setHint('GitHub 实时搜索暂不可用，已用本地意图搜索为你匹配内置社区插件（支持中英文）。')
     } finally {
       if (!signal?.aborted) setSearching(false)
     }
@@ -65,17 +92,18 @@ export function MarketplacePanel(): JSX.Element {
 
   useEffect(() => {
     const controller = new AbortController()
-    void loadDefault(controller.signal)
+    void loadDefault(true, controller.signal)
     return () => { controller.abort() }
   }, [loadDefault])
 
-  // Re-run the active search whenever the query box is cleared back to empty.
+  // Re-run the default catalog whenever the query box is cleared back to empty.
   const onQueryChange = useCallback((value: string) => {
     setQuery(value)
     if (value.trim().length === 0) {
       searchController.current?.abort()
       setSearching(false)
-      void loadDefault()
+      setHint(null)
+      void loadDefault(true)
     }
   }, [loadDefault])
 
@@ -84,10 +112,29 @@ export function MarketplacePanel(): JSX.Element {
     searchController.current?.abort()
     const controller = new AbortController()
     searchController.current = controller
-    void runSearch(query, controller.signal)
+    void runSearch(query, true, controller.signal)
   }, [query, runSearch])
 
+  // 「加载更多」只揭示本地已加载列表的下一批，完全不依赖网络（GitHub 不可达也能翻页）。
+  const onLoadMore = useCallback(() => {
+    setVisibleCount((count) => count + MARKETPLACE_PAGE)
+  }, [])
+
   useEffect(() => () => { searchController.current?.abort() }, [])
+
+  // 展示列表：搜索时走本地中英文意图匹配，并合并任何已拉到的 GitHub 实时结果（联网时）。
+  // 空查询则展示全部（社区目录 + GitHub 合并后、按 star 排序）。
+  const trimmed = query.trim()
+  const queryHits = useMemo(
+    () => (trimmed.length === 0
+      ? allPlugins
+      : mergeSearchResults(localSearch(allPlugins, trimmed), githubPlugins)),
+    [allPlugins, trimmed, githubPlugins],
+  )
+  const plugins = queryHits
+  const isSearchEmpty = trimmed.length > 0 && queryHits.length === 0
+  // 查询词变化时重置分页，从第一页开始展示。
+  useEffect(() => { setVisibleCount(MARKETPLACE_PAGE) }, [trimmed])
 
   const runOperation = useCallback(async (plugin: MarketplacePlugin, mode: 'install' | 'uninstall' | 'update') => {
     setBusy(plugin.id)
@@ -107,14 +154,15 @@ export function MarketplacePanel(): JSX.Element {
         ? prev.filter(id => id !== plugin.id)
         : [...new Set([...prev, plugin.id])])
     } catch (cause) {
-      setLastLog(cause instanceof Error ? cause.message : String(cause))
+      const message = cause instanceof Error ? cause.message : String(cause)
+      setError(message)
+      setLastLog(message)
     } finally {
       setBusy(null)
     }
   }, [])
 
   const isInstalled = useCallback((id: string) => installed.includes(id), [installed])
-  const isSearching = loading || searching
 
   return (
     <div className="dshDesktopMarketplace">
@@ -125,7 +173,7 @@ export function MarketplacePanel(): JSX.Element {
           <input
             type="search"
             className="dshDesktopSearchInput"
-            placeholder="搜索 GitHub 上的插件（关键词 / 仓库名）"
+            placeholder="搜索插件（支持中英文，如：翻译 / cc-connect / 文档工具）"
             value={query}
             onChange={(event) => { onQueryChange(event.target.value) }}
             aria-label="搜索插件"
@@ -133,7 +181,6 @@ export function MarketplacePanel(): JSX.Element {
           <button
             type="submit"
             className="dshDesktopSecondaryButton"
-            disabled={isSearching}
           >
             {searching ? '搜索中…' : '搜索'}
           </button>
@@ -141,8 +188,7 @@ export function MarketplacePanel(): JSX.Element {
             <button
               type="button"
               className="dshDesktopLinkButton"
-              onClick={() => { setQuery(''); searchController.current?.abort(); setSearching(false); void loadDefault() }}
-              disabled={isSearching}
+              onClick={() => { setQuery(''); searchController.current?.abort(); setSearching(false); void loadDefault(true) }}
             >
               清除
             </button>
@@ -151,20 +197,24 @@ export function MarketplacePanel(): JSX.Element {
         <button
           type="button"
           className="dshDesktopSecondaryButton dshDesktopRefreshButton"
-          onClick={() => { void loadDefault() }}
-          disabled={isSearching}
+          onClick={() => { void loadDefault(true) }}
+          disabled={loading}
         >
           {loading ? '加载中…' : '刷新列表'}
         </button>
       </header>
 
+      {hint !== null && <p className="dshDesktopMarketplaceHintNote">{hint}</p>}
+      {isSearchEmpty && (
+        <p className="dshDesktopMarketplaceHintNote">未找到与「{trimmed}」精确相关的插件，已为你展示全部 dsh 社区插件。可换一个更具体的关键词试试。</p>
+      )}
       {error !== null && <p className="dshDesktopMarketplaceNote">{error}</p>}
       {lastLog !== null && (
         <pre className="dshDesktopMarketplaceLog" role="status">{lastLog}</pre>
       )}
 
       <ul className="dshDesktopPluginList">
-        {plugins.map(plugin => {
+        {plugins.slice(0, visibleCount).map(plugin => {
           const installedNow = isInstalled(plugin.id)
           const active = busy === plugin.id
           return (
@@ -172,7 +222,7 @@ export function MarketplacePanel(): JSX.Element {
               <div className="dshDesktopPluginHead">
                 <span className="dshDesktopPluginName">{plugin.name}</span>
                 {plugin.stars !== undefined && (
-                  <span className="dshDesktopPluginStars">★ {String(plugin.stars)}</span>
+                  <span className="dshDesktopPluginStars">★ {formatStars(plugin.stars)}</span>
                 )}
               </div>
               <p className="dshDesktopPluginDesc">{plugin.description}</p>
@@ -230,6 +280,16 @@ export function MarketplacePanel(): JSX.Element {
           )
         })}
       </ul>
+
+      {plugins.length > visibleCount && (
+        <button
+          type="button"
+          className="dshDesktopSecondaryButton dshDesktopLoadMore"
+          onClick={() => { onLoadMore() }}
+        >
+          {`加载更多（已显示 ${Math.min(visibleCount, plugins.length)} / ${plugins.length}）`}
+        </button>
+      )}
     </div>
   )
 }
@@ -242,6 +302,40 @@ function mergePlugins(
   for (const plugin of base) byId.set(plugin.id, plugin)
   for (const plugin of extra) byId.set(plugin.id, plugin)
   return [...byId.values()]
+}
+
+/** Append `extra` to `base` without duplicating entries by id. */
+function appendPlugins(
+  base: readonly MarketplacePlugin[],
+  extra: readonly MarketplacePlugin[],
+): MarketplacePlugin[] {
+  const byId = new Map<string, MarketplacePlugin>()
+  for (const plugin of base) byId.set(plugin.id, plugin)
+  for (const plugin of extra) if (!byId.has(plugin.id)) byId.set(plugin.id, plugin)
+  return [...byId.values()]
+}
+
+/**
+ * 把本地意图搜索命中的结果，与已拉取到的 GitHub 实时结果合并去重。
+ * 本地结果优先（已按相关度排好），GitHub 实时结果（联网时）作为补充追加在后。
+ */
+function mergeSearchResults(
+  local: readonly MarketplacePlugin[],
+  live: readonly MarketplacePlugin[],
+): MarketplacePlugin[] {
+  const byId = new Map<string, MarketplacePlugin>()
+  for (const plugin of local) byId.set(plugin.id, plugin)
+  for (const plugin of live) if (!byId.has(plugin.id)) byId.set(plugin.id, plugin)
+  return [...byId.values()]
+}
+
+/** 把 star 数格式化为紧凑形式：144743 → 144.7k，15005 → 15.0k，592 → 592。 */
+function formatStars(value: number): string {
+  if (value >= 1000) {
+    const k = value / 1000
+    return `${k >= 10 ? k.toFixed(0) : k.toFixed(1)}k`
+  }
+  return String(value)
 }
 
 function readInstalled(): string[] {

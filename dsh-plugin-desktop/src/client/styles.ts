@@ -213,6 +213,9 @@ html:has([aria-modal="true"]) .dshDesktopSidebarSurface::before { -webkit-app-re
 .dshDesktopEmptyState, .dshDesktopMarketplaceNote { padding: 16px; font-size: 13px; color: var(--dsh-desktop-fg-muted); }
 .dshDesktopToolsError { margin: 10px 0 0; padding: 8px 10px; font-size: 12px; line-height: 1.6; color: #d6455a; background: rgba(214, 69, 90, 0.08); border: 1px solid rgba(214, 69, 90, 0.35); border-radius: 8px; word-break: break-all; }
 .dshDesktopMarketplaceLog { margin: 0 12px 8px; padding: 8px 10px; max-height: 160px; overflow: auto; white-space: pre-wrap; font-size: 11px; background: var(--dsh-desktop-code-bg); border: 1px solid var(--dsh-desktop-border); border-radius: 8px; color: var(--dsh-desktop-fg-muted); }
+.dshDesktopMarketplaceHintNote { margin: 8px 12px 4px; padding: 8px 10px; font-size: 12px; line-height: 1.6; color: var(--dsh-desktop-fg-muted); background: color-mix(in srgb, var(--dsh-desktop-accent) 10%, transparent); border: 1px solid color-mix(in srgb, var(--dsh-desktop-accent) 30%, transparent); border-radius: 8px; }
+.dshDesktopLoadMore { align-self: center; margin: 4px auto 18px; min-width: 180px; }
+.dshDesktopLoadMore:disabled { opacity: 0.6; cursor: default; }
 
 /* ---- Buttons ---- */
 .dshDesktopPrimaryButton, .dshDesktopSecondaryButton, .dshDesktopDangerButton, .dshDesktopLinkButton { font-size: 12px; border-radius: 8px; padding: 6px 12px; cursor: pointer; border: 1px solid var(--dsh-desktop-border); -webkit-app-region: no-drag; }
