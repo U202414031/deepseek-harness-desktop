@@ -27,7 +27,31 @@ export interface DesktopLayoutService {
 }
 
 /** Left-surface selection rendered inside the desktop-owned sidebar column. */
-export type DesktopLeftPanel = 'chat' | 'marketplace' | 'skins' | 'api' | 'tools'
+export type DesktopLeftPanel = 'chat' | 'marketplace' | 'skins' | 'api' | 'tools' | 'workflow'
+
+/**
+ * Engine-owned turn boundary as seen by the upstream `conversation.chat.turnTail`
+ * chain owner (structural mirror of the runtime TurnLocation; the desktop does
+ * not import the upstream conversation types).
+ */
+export interface DesktopTurnLocation {
+  turn: number
+  start?: unknown
+  end?: unknown
+  status: 'open' | 'closed' | 'unknown'
+  steps: readonly unknown[]
+  data: unknown
+}
+
+/** Owner currency of the upstream turn-tail chain slot. */
+export interface DesktopTurnTailOwner {
+  /** Engine-owned closing Turn boundary. */
+  turn: DesktopTurnLocation
+  /** The closing assistant's seq — the anchor the tail renders under. */
+  seq: number
+  /** Open a filesystem path through the Host. */
+  openFile: (path: string) => void
+}
 
 declare module '@deepseek-ai/cordis' {
   interface Context {
@@ -52,11 +76,16 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     'sidebar.api': { kind: 'single'; scope: 'root'; owner: Record<never, never> }
     /** Desktop-owned external-tools surface rendered in the left column. */
     'sidebar.tools': { kind: 'single'; scope: 'root'; owner: Record<never, never> }
+    /** Desktop-owned workflow manager surface rendered in the left column. */
+    'sidebar.workflow': { kind: 'single'; scope: 'root'; owner: Record<never, never> }
     /** Headless observer that publishes the active session's model/provider to a shared store. */
     'desktop.model-monitor': { kind: 'single'; scope: 'session-maybe'; owner: Record<never, never> }
     /** Desktop-owned artifacts/code panel rendered in the right column. */
     'artifacts': { kind: 'single'; scope: 'session'; owner: Record<never, never> }
     /** Frame-wide additive overlays. */
     'shell.overlay': { kind: 'list'; scope: 'root' }
+    /** Upstream turn-tail chain (declared by dsh-client-ui-conversation); the
+     *  desktop contributes the per-reply usage footer into it. */
+    'conversation.chat.turnTail': { kind: 'chain'; scope: 'session'; owner: DesktopTurnTailOwner }
   }
 }

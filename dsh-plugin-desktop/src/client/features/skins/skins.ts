@@ -46,11 +46,49 @@ export interface WhaleAmbient {
   /** Optional full-window color wash painted beneath the particles. */
   bgWash?: { from: string; to: string; kind?: 'radial' | 'linear' }
   /** Opacity of `bgWash`, kept low (≤ ~0.5) to protect text readability. */
-  bgWashAlpha: number
-  /** Optional full-window whale-girl backdrop image (any CSS url, including
-   *  `file://` paths or data URIs). When set, the desktop surfaces adopt a
-   *  frosted-glass treatment so the artwork shows through. */
+  bgWashAlpha?: number
+  /** Optional full-scene whale-girl backdrop image (any CSS url, including
+   *  `file://` paths or data URIs). The character is painted into the scene
+   *  itself, so she fuses with the background rather than floating on top. */
   bgImage?: string
+  /** Optional seamless looping animated video of the fused scene (character +
+   *  environment moving together). When present, the engine plays this as a single
+   *  full-screen animated backdrop instead of layering separate images and canvas effects. */
+  video?: string
+  /** Optional seamless looping *environment-only* video (no character). When
+   *  combined with `charFrames`, the engine layers a transparent character
+   *  sprite on top so the background keeps moving (falling snow, drifting
+   *  petals, rain, fish…) while the character animates independently as a
+   *  multi-frame sequence — the mature live2d / video-background pattern. */
+  bgVideo?: string
+  /** Transparent sprite frames of the character played on top of `bgVideo`.
+   *  When the engine reaches the last frame it loops back to the first. */
+  charFrames?: string[]
+  /** Sprite playback rate in frames per second. Default 8. */
+  charFps?: number
+
+  /**
+   * Optional *procedural* dynamic overlay rendered on top of the backdrop image
+   * (or on a fallback gradient). Adds motion: `water` (flowing currents),
+   * `snow` (falling snow), `fire` (flickering flames), `aurora`, `starfield`,
+   * `bubbles`, `sakura` (petals), `cyber` (neon grid), `rain`, `sunrise`.
+   */
+  dynamicBg?: 'water' | 'aurora' | 'sunrise' | 'starfield' | 'bubbles' | 'snow' | 'fire' | 'sakura' | 'cyber' | 'rain'
+  /**
+   * Optional *transparent* whale-girl cutout layered above the backdrop and
+   * animated in 2D (the girl breathes, twirls, flicks her hair…). Lets the
+   * character move without turning the whole scene into a stiff still.
+   */
+  charImage?: string
+  /** Animation performed by the `charImage` cutout. */
+  charAnim?: 'breath' | 'lookUp' | 'nod' | 'float' | 'wave' | 'twirl' | 'hairFlip' | 'umbrella'
+  /**
+   * Whether the floating particle field (plus cursor dust and soft bokeh)
+   * runs for this skin. Defaults to true. Set false for a clean static or
+   * animated backdrop with no drifting particles — used by image/video
+   * imported skins whose owners opt out of the particle stream.
+   */
+  particles?: boolean
 }
 
 /**
@@ -227,79 +265,9 @@ export const SKINS: readonly Skin[] = Object.freeze([
     },
   },
   {
-    id: 'whale-abyss',
-    label: '深海蓝鲸',
-    description: 'DeepSeek 深蓝鲸鱼娘：幽蓝海底与荧光气泡，粒子随光标汇聚。',
-    variables: {
-      '--dsh-desktop-bg': '#06121f',
-      '--dsh-desktop-surface': '#0b2236',
-      '--dsh-desktop-surface-2': '#103049',
-      '--dsh-desktop-fg': '#dff1ff',
-      '--dsh-desktop-fg-muted': '#7fa8c9',
-      '--dsh-desktop-border': '#163a55',
-      '--dsh-desktop-accent': '#36c9ff',
-      '--dsh-desktop-accent-fg': '#04141f',
-      '--dsh-desktop-code-bg': '#08263b',
-      '--dsw-alias-bg-base': '#06121f',
-      '--dsw-alias-bg-elevated': '#0b2236',
-      '--dsw-alias-fg-base': '#dff1ff',
-      '--dsw-alias-fg-muted': '#7fa8c9',
-      '--dsw-alias-border-l1': '#163a55',
-      '--dsw-alias-border-l2': '#163a55',
-      '--dsw-alias-accent': '#36c9ff',
-    },
-    ambient: {
-      particle: '#5fe3ff',
-      particle2: '#7fa8ff',
-      glow: 'rgba(95,227,255,0.55)',
-      density: 115,
-      shape: 'bubble',
-      speed: 0.5,
-      mascot: true,
-      bgWash: { from: '#0a2a44', to: '#06121f', kind: 'radial' },
-      bgWashAlpha: 0.42,
-      bgImage: 'file:///D:/WorkBuddy/deepseek-desk/whale-skins/bg/whale-abyss.jpg',
-    },
-  },
-  {
-    id: 'whale-aurora',
-    label: '极光鲸歌',
-    description: '鲸鱼娘游过极光带：青绿与紫罗兰的流光粒子。',
-    variables: {
-      '--dsh-desktop-bg': '#0a1026',
-      '--dsh-desktop-surface': '#141a38',
-      '--dsh-desktop-surface-2': '#1c2347',
-      '--dsh-desktop-fg': '#e6ecff',
-      '--dsh-desktop-fg-muted': '#8a93c8',
-      '--dsh-desktop-border': '#26305c',
-      '--dsh-desktop-accent': '#6ad0c4',
-      '--dsh-desktop-accent-fg': '#06121f',
-      '--dsh-desktop-code-bg': '#0d1430',
-      '--dsw-alias-bg-base': '#0a1026',
-      '--dsw-alias-bg-elevated': '#141a38',
-      '--dsw-alias-fg-base': '#e6ecff',
-      '--dsw-alias-fg-muted': '#8a93c8',
-      '--dsw-alias-border-l1': '#26305c',
-      '--dsw-alias-border-l2': '#26305c',
-      '--dsw-alias-accent': '#6ad0c4',
-    },
-    ambient: {
-      particle: '#6ad0c4',
-      particle2: '#b98cff',
-      glow: 'rgba(120,170,255,0.5)',
-      density: 100,
-      shape: 'spark',
-      speed: 0.55,
-      mascot: true,
-      bgWash: { from: '#13204a', to: '#0a1026', kind: 'linear' },
-      bgWashAlpha: 0.38,
-      bgImage: 'file:///D:/WorkBuddy/deepseek-desk/whale-skins/bg/whale-aurora.jpg',
-    },
-  },
-  {
     id: 'whale-dawn',
     label: '晨曦鲸跃',
-    description: '鲸鱼娘跃出海面的清晨：暖橙与樱粉的柔光气泡。',
+    description: '整幅融合壁纸：日出海边栈桥上的水手 JK 鲸鱼娘，暖光与柔光气泡。',
     variables: {
       '--dsh-desktop-bg': '#fff2ea',
       '--dsh-desktop-surface': '#fffaf6',
@@ -326,50 +294,14 @@ export const SKINS: readonly Skin[] = Object.freeze([
       shape: 'bubble',
       speed: 0.45,
       mascot: true,
-      bgWash: { from: '#ffe3d0', to: '#fff3ec', kind: 'linear' },
-      bgWashAlpha: 0.3,
-      bgImage: 'file:///D:/WorkBuddy/deepseek-desk/whale-skins/bg/whale-dawn.jpg',
-    },
-  },
-  {
-    id: 'whale-star',
-    label: '星海鲸游',
-    description: '鲸鱼娘遨游星海：近黑深空与星座般的星点粒子。',
-    variables: {
-      '--dsh-desktop-bg': '#05060f',
-      '--dsh-desktop-surface': '#0b0d1c',
-      '--dsh-desktop-surface-2': '#12152b',
-      '--dsh-desktop-fg': '#e8ecff',
-      '--dsh-desktop-fg-muted': '#7c84b8',
-      '--dsh-desktop-border': '#1b2042',
-      '--dsh-desktop-accent': '#8b7bff',
-      '--dsh-desktop-accent-fg': '#05060f',
-      '--dsh-desktop-code-bg': '#080a16',
-      '--dsw-alias-bg-base': '#05060f',
-      '--dsw-alias-bg-elevated': '#0b0d1c',
-      '--dsw-alias-fg-base': '#e8ecff',
-      '--dsw-alias-fg-muted': '#7c84b8',
-      '--dsw-alias-border-l1': '#1b2042',
-      '--dsw-alias-border-l2': '#1b2042',
-      '--dsw-alias-accent': '#8b7bff',
-    },
-    ambient: {
-      particle: '#bcd0ff',
-      particle2: '#c79bff',
-      glow: 'rgba(150,170,255,0.5)',
-      density: 135,
-      shape: 'star',
-      speed: 0.35,
-      mascot: true,
-      bgWash: { from: '#10143a', to: '#05060f', kind: 'radial' },
-      bgWashAlpha: 0.5,
-      bgImage: 'file:///D:/WorkBuddy/deepseek-desk/whale-skins/bg/whale-star.jpg',
+      bgImage: '/desktop/skins/bg/fused-v3/whale-dawn.png',
+      video: '/desktop/skins/video/whale-dawn.mp4',
     },
   },
   {
     id: 'whale-mint',
     label: '薄荷气泡',
-    description: '清新鲸鱼娘：薄荷绿与浅青的灵动气泡海洋。',
+    description: '整幅融合壁纸：薄荷绿泳池边的清爽泳装鲸鱼娘，晶莹气泡不断上升。',
     variables: {
       '--dsh-desktop-bg': '#eafaf6',
       '--dsh-desktop-surface': '#ffffff',
@@ -396,9 +328,176 @@ export const SKINS: readonly Skin[] = Object.freeze([
       shape: 'bubble',
       speed: 0.5,
       mascot: true,
-      bgWash: { from: '#d6f3ec', to: '#eafaf6', kind: 'linear' },
-      bgWashAlpha: 0.3,
-      bgImage: 'file:///D:/WorkBuddy/deepseek-desk/whale-skins/bg/whale-mint.jpg',
+      bgImage: '/desktop/skins/bg/fused-v3/whale-mint.png',
+      video: '/desktop/skins/video/whale-mint.mp4',
+    },
+  },
+])
+
+/**
+ * 开发中（未上架）的鲸鱼娘皮肤。
+ * 配置与资源已就绪，但还未达到上架标准：暂不进入桌面端皮肤列表（getCatalog 只暴露
+ * `SKINS`）。质量达标后把这些对象移回 `SKINS` 即可上架。
+ */
+export const WHALE_DEV_SKINS: readonly Skin[] = Object.freeze([
+  {
+    id: 'whale-abyss',
+    label: '深海蓝鲸',
+    description: '整幅融合壁纸：幽蓝水晶宫殿中的深海女仆装鲸鱼娘，水母与气泡环绕。',
+    variables: {
+      '--dsh-desktop-bg': '#06121f',
+      '--dsh-desktop-surface': '#0b2236',
+      '--dsh-desktop-surface-2': '#103049',
+      '--dsh-desktop-fg': '#dff1ff',
+      '--dsh-desktop-fg-muted': '#7fa8c9',
+      '--dsh-desktop-border': '#163a55',
+      '--dsh-desktop-accent': '#36c9ff',
+      '--dsh-desktop-accent-fg': '#04141f',
+      '--dsh-desktop-code-bg': '#08263b',
+      '--dsw-alias-bg-base': '#06121f',
+      '--dsw-alias-bg-elevated': '#0b2236',
+      '--dsw-alias-fg-base': '#dff1ff',
+      '--dsw-alias-fg-muted': '#7fa8c9',
+      '--dsw-alias-border-l1': '#163a55',
+      '--dsw-alias-border-l2': '#163a55',
+      '--dsw-alias-accent': '#36c9ff',
+    },
+    ambient: {
+      particle: '#5fe3ff',
+      particle2: '#7fa8ff',
+      glow: 'rgba(95,227,255,0.55)',
+      density: 115,
+      shape: 'bubble',
+      speed: 0.5,
+      mascot: true,
+      bgVideo: '/desktop/skins/video/whale-abyss-bg.mp4',
+      charFrames: [
+        '/desktop/skins/bg/sprites/abyss/abyss-frame-1.png',
+        '/desktop/skins/bg/sprites/abyss/abyss-frame-2.png',
+        '/desktop/skins/bg/sprites/abyss/abyss-frame-3.png',
+        '/desktop/skins/bg/sprites/abyss/abyss-frame-4.png',
+      ],
+      charFps: 6,
+    },
+  },
+  {
+    id: 'whale-snow',
+    label: '雪地芭蕾',
+    description: '整幅融合壁纸：雪夜森林中起舞的芭蕾裙鲸鱼娘，柔雪持续飘落。',
+    variables: {
+      '--dsh-desktop-bg': '#e9f2fb',
+      '--dsh-desktop-surface': '#ffffff',
+      '--dsh-desktop-surface-2': '#dce9f6',
+      '--dsh-desktop-fg': '#274057',
+      '--dsh-desktop-fg-muted': '#6b8299',
+      '--dsh-desktop-border': '#c4d8ec',
+      '--dsh-desktop-accent': '#7fb4ff',
+      '--dsh-desktop-accent-fg': '#ffffff',
+      '--dsh-desktop-code-bg': '#e3eefb',
+      '--dsw-alias-bg-base': '#e9f2fb',
+      '--dsw-alias-bg-elevated': '#ffffff',
+      '--dsw-alias-fg-base': '#274057',
+      '--dsw-alias-fg-muted': '#6b8299',
+      '--dsw-alias-border-l1': '#c4d8ec',
+      '--dsw-alias-border-l2': '#c4d8ec',
+      '--dsw-alias-accent': '#7fb4ff',
+    },
+    ambient: {
+      particle: '#cfe6ff',
+      particle2: '#ffffff',
+      glow: 'rgba(150,200,255,0.45)',
+      density: 90,
+      shape: 'star',
+      speed: 0.4,
+      mascot: true,
+      bgVideo: '/desktop/skins/video/whale-snow-bg.mp4',
+      charFrames: [
+        '/desktop/skins/bg/sprites/snow/snow-frame-1.png',
+        '/desktop/skins/bg/sprites/snow/snow-frame-2.png',
+        '/desktop/skins/bg/sprites/snow/snow-frame-3.png',
+        '/desktop/skins/bg/sprites/snow/snow-frame-4.png',
+      ],
+      charFps: 7,
+    },
+  },
+  {
+    id: 'whale-sakura',
+    label: '樱花鲸鱼娘',
+    description: '整幅融合壁纸：樱花树下的和服鲸鱼娘，粉色花瓣随风飘舞。',
+    variables: {
+      '--dsh-desktop-bg': '#fff0f5',
+      '--dsh-desktop-surface': '#fffafc',
+      '--dsh-desktop-surface-2': '#ffe3ee',
+      '--dsh-desktop-fg': '#5a2a3a',
+      '--dsh-desktop-fg-muted': '#b07a8c',
+      '--dsh-desktop-border': '#f3cdda',
+      '--dsh-desktop-accent': '#ff8fb3',
+      '--dsh-desktop-accent-fg': '#ffffff',
+      '--dsh-desktop-code-bg': '#ffe9f1',
+      '--dsw-alias-bg-base': '#fff0f5',
+      '--dsw-alias-bg-elevated': '#fffafc',
+      '--dsw-alias-fg-base': '#5a2a3a',
+      '--dsw-alias-fg-muted': '#b07a8c',
+      '--dsw-alias-border-l1': '#f3cdda',
+      '--dsw-alias-border-l2': '#f3cdda',
+      '--dsw-alias-accent': '#ff8fb3',
+    },
+    ambient: {
+      particle: '#ffb3cf',
+      particle2: '#ffd9e6',
+      glow: 'rgba(255,150,190,0.4)',
+      density: 80,
+      shape: 'bubble',
+      speed: 0.45,
+      mascot: true,
+      bgVideo: '/desktop/skins/video/whale-sakura-bg.mp4',
+      charFrames: [
+        '/desktop/skins/bg/sprites/sakura/sakura-frame-1.png',
+        '/desktop/skins/bg/sprites/sakura/sakura-frame-2.png',
+        '/desktop/skins/bg/sprites/sakura/sakura-frame-3.png',
+        '/desktop/skins/bg/sprites/sakura/sakura-frame-4.png',
+      ],
+      charFps: 6,
+    },
+  },
+  {
+    id: 'whale-rain',
+    label: '雨夜鲸鱼娘',
+    description: '整幅融合壁纸：都市雨夜窗边擦泪的鲸鱼娘，斜雨与霓虹交织。',
+    variables: {
+      '--dsh-desktop-bg': '#0c1620',
+      '--dsh-desktop-surface': '#122230',
+      '--dsh-desktop-surface-2': '#18303f',
+      '--dsh-desktop-fg': '#d6e6f0',
+      '--dsh-desktop-fg-muted': '#6f8aa0',
+      '--dsh-desktop-border': '#1f3a4d',
+      '--dsh-desktop-accent': '#5fb8e6',
+      '--dsh-desktop-accent-fg': '#06121f',
+      '--dsh-desktop-code-bg': '#0e1b26',
+      '--dsw-alias-bg-base': '#0c1620',
+      '--dsw-alias-bg-elevated': '#122230',
+      '--dsw-alias-fg-base': '#d6e6f0',
+      '--dsw-alias-fg-muted': '#6f8aa0',
+      '--dsw-alias-border-l1': '#1f3a4d',
+      '--dsw-alias-border-l2': '#1f3a4d',
+      '--dsw-alias-accent': '#5fb8e6',
+    },
+    ambient: {
+      particle: '#9fd6ff',
+      particle2: '#cfeaff',
+      glow: 'rgba(120,190,230,0.45)',
+      density: 100,
+      shape: 'star',
+      speed: 0.5,
+      mascot: true,
+      bgVideo: '/desktop/skins/video/whale-rain-bg.mp4',
+      charFrames: [
+        '/desktop/skins/bg/sprites/rain/rain-frame-1.png',
+        '/desktop/skins/bg/sprites/rain/rain-frame-2.png',
+        '/desktop/skins/bg/sprites/rain/rain-frame-3.png',
+        '/desktop/skins/bg/sprites/rain/rain-frame-4.png',
+      ],
+      charFps: 5,
     },
   },
 ])

@@ -76,6 +76,9 @@ export async function fetchBalance(spec: ProviderSpec, apiKey: string): Promise<
       granted_balance?: string | number
       topped_up_balance?: string | number
     }>
+    // OpenRouter `/api/v1/credits` shape.
+    credits?: number
+    usage?: number
   }
   const infos: BalanceInfo[] = (data.balance_infos ?? []).map((b) => ({
     currency: b.currency ?? '',
@@ -83,5 +86,13 @@ export async function fetchBalance(spec: ProviderSpec, apiKey: string): Promise<
     grantedBalance: String(b.granted_balance ?? ''),
     toppedUpBalance: String(b.topped_up_balance ?? ''),
   }))
+  if (infos.length === 0 && typeof data.credits === 'number') {
+    infos.push({
+      currency: 'USD',
+      totalBalance: String(data.credits),
+      grantedBalance: '',
+      toppedUpBalance: '',
+    })
+  }
   return { providerId: spec.id, available: data.is_available ?? infos.length > 0, infos }
 }

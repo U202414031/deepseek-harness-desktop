@@ -47,7 +47,13 @@ export function installMarketplaceRoutes(ctx: Context): () => void {
       return
     }
     const controller = new AbortController()
-    req.on('close', () => { controller.abort() })
+    // 注意：IncomingMessage 'close' 在请求体读完时就触发（并非连接断开），
+    // 用它中止会让安装/卸载操作立即失败。正确检测客户端断开：
+    // 请求侧用 'aborted'，响应侧在 res 'close' 时判断 writableFinished。
+    req.on('aborted', () => { controller.abort() })
+    res.on('close', () => {
+      if (!res.writableFinished) controller.abort()
+    })
     try {
       const raw = await readBody(req)
       const parsed = JSON.parse(raw) as { spec?: unknown }

@@ -473,7 +473,7 @@ export function ToolsPanel(): JSX.Element {
     <div className="dshDesktopTools">
       <header className="dshDesktopFeatureHeader">
         <h2 className="dshDesktopFeatureTitle">外部工具</h2>
-        <p className="dshDesktopFeatureSubtitle">接入 QQ / 微信 / 飞书，发送消息、获取与总结信息、定时发送、管理任务。凭证仅保存在本机。</p>
+        <p className="dshDesktopFeatureSubtitle">接入 QQ / 微信 / 飞书，发送消息、获取与总结信息、定时发送、管理任务。凭证仅保存在本机。【工具构建 v5】</p>
       </header>
 
       <div className="dshDesktopToolsTabs">
@@ -496,6 +496,8 @@ export function ToolsPanel(): JSX.Element {
           <span>连接状态</span>
           <b data-status={status}>{STATUS_LABEL[status]}</b>
         </div>
+
+        {fieldError !== null && <p className="dshDesktopToolsError">{fieldError}</p>}
 
         {meta.fields.map((field) => (
           <label key={field.key} className="dshDesktopSkinField">
@@ -779,7 +781,6 @@ export function ToolsPanel(): JSX.Element {
         </ul>
       </div>
 
-      {fieldError !== null && <p className="dshDesktopMarketplaceNote">{fieldError}</p>}
       {info !== null && <p className="dshDesktopToolsInfo">{info}</p>}
     </div>
   )

@@ -11,7 +11,9 @@ import { MarketplacePanel } from './features/marketplace/MarketplacePanel.tsx'
 import { SkinsPanel } from './features/skins/SkinsPanel.tsx'
 import { ApiSettingsPanel } from './features/api/ApiSettingsPanel.tsx'
 import { ToolsPanel } from './features/tools/ToolsPanel.tsx'
+import { WorkflowPanel } from './features/workflow/WorkflowPanel.tsx'
 import { ModelMonitor } from './features/api/ModelMonitor.tsx'
+import { TurnUsageFooter } from './features/api/turn-usage-footer.tsx'
 import { ArtifactsPanel } from './features/artifacts/ArtifactsPanel.tsx'
 import { applySkin, getSkin } from './features/skins/skin-service.ts'
 import { startWhaleAmbient } from './features/skins/whale-ambient.ts'
@@ -73,6 +75,7 @@ export function applyAdvancedShell(ctx: ClientContext, environment: DesktopClien
       'sidebar.skins': { kind: 'single', scope: 'root' },
       'sidebar.api': { kind: 'single', scope: 'root' },
       'sidebar.tools': { kind: 'single', scope: 'root' },
+      'sidebar.workflow': { kind: 'single', scope: 'root' },
       'desktop.model-monitor': { kind: 'single', scope: 'session-maybe' },
       'artifacts': { kind: 'single', scope: 'session' },
       'shell.overlay': { kind: 'list', scope: 'root' },
@@ -86,6 +89,18 @@ export function applyAdvancedShell(ctx: ClientContext, environment: DesktopClien
   ctx.effect(() => ctx.slots.register({ name: 'sidebar.skins' }, SkinsPanel), 'desktop: skins surface')
   ctx.effect(() => ctx.slots.register({ name: 'sidebar.api' }, ApiSettingsPanel), 'desktop: api settings surface')
   ctx.effect(() => ctx.slots.register({ name: 'sidebar.tools' }, ToolsPanel), 'desktop: external tools surface')
+  ctx.effect(() => ctx.slots.register({ name: 'sidebar.workflow' }, WorkflowPanel), 'desktop: workflow surface')
   ctx.effect(() => ctx.slots.register({ name: 'desktop.model-monitor' }, ModelMonitor), 'desktop: model monitor')
   ctx.effect(() => ctx.slots.register({ name: 'artifacts' }, ArtifactsPanel), 'desktop: artifacts surface')
+
+  // Inline per-reply usage footer: contributes into the upstream turn-tail
+  // chain slot (declared by dsh-client-ui-conversation), so each finished
+  // reply shows its token usage + estimated cost right below the message.
+  ctx.effect(
+    () => ctx.slots.inject('conversation.chat.turnTail', () => ctx.slots.register({
+      name: 'conversation.chat.turnTail',
+      select: (owner) => ({ turnNumber: owner.turn.turn, seq: owner.seq }),
+    }, TurnUsageFooter)),
+    'desktop: turn usage footer',
+  )
 }

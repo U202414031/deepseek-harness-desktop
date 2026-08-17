@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { ConversationSnapshot } from '@deepseek-ai/dsh-client-runtime/client'
 import type { PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
-import { parseUsage, type TokenUsage } from '../usage/usage.ts'
 
 interface CodeItem {
   language: string
@@ -16,17 +15,9 @@ interface ArtifactItem {
   seq: number
 }
 
-/** One assistant response with resolvable token usage. */
-interface UsageItem {
-  seq: number
-  turn: number
-  usage: TokenUsage
-}
-
 interface Extracted {
   code: CodeItem[]
   artifacts: ArtifactItem[]
-  usage: UsageItem[]
 }
 
 /**
@@ -38,7 +29,7 @@ interface Extracted {
 export function ArtifactsPanel({ useSession }: PropsRuntime<'artifacts'>): JSX.Element {
   const snapshot = useSession((s) => s)
   const extracted = useMemo(() => extractArtifacts(snapshot), [snapshot])
-  const [tab, setTab] = useState<'code' | 'artifacts' | 'usage'>('code')
+  const [tab, setTab] = useState<'code' | 'artifacts'>('code')
 
   return (
     <div className="dshDesktopArtifacts">
@@ -61,55 +52,12 @@ export function ArtifactsPanel({ useSession }: PropsRuntime<'artifacts'>): JSX.E
         >
           产物 ({extracted.artifacts.length})
         </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={tab === 'usage'}
-          className="dshDesktopArtifactsTab"
-          onClick={() => { setTab('usage') }}
-        >
-          用量 ({extracted.usage.length})
-        </button>
       </div>
       <div className="dshDesktopArtifactsBody">
         {tab === 'code'
           ? renderCode(extracted.code)
-          : tab === 'artifacts'
-            ? renderArtifacts(extracted.artifacts)
-            : renderUsage(extracted.usage)}
+          : renderArtifacts(extracted.artifacts)}
       </div>
-    </div>
-  )
-}
-
-function renderUsage(items: readonly UsageItem[]): JSX.Element {
-  if (items.length === 0) return <EmptyState text="当前会话还没有可用的 token 用量数据。" />
-  const totalPrompt = items.reduce((sum, item) => sum + item.usage.promptTokens, 0)
-  const totalCompletion = items.reduce((sum, item) => sum + item.usage.completionTokens, 0)
-  const totalAll = items.reduce((sum, item) => sum + item.usage.totalTokens, 0)
-  return (
-    <div className="dshDesktopUsageWrap">
-      <div className="dshDesktopUsageTotal">
-        <span>本会话累计</span>
-        <b>输入 {totalPrompt} · 输出 {totalCompletion} · 合计 {totalAll} tokens</b>
-      </div>
-      <ul className="dshDesktopUsageList">
-        {items.map((item) => {
-          const u = item.usage
-          return (
-            <li key={item.seq} className="dshDesktopUsageRow">
-              <span className="dshDesktopUsageTurn">回复 #{item.turn}</span>
-              <span className="dshDesktopUsageNumbers">输入 {u.promptTokens} · 输出 {u.completionTokens} · 合计 {u.totalTokens}</span>
-              {u.cacheHitTokens !== undefined && (
-                <span className="dshDesktopUsageCache">缓存命中 {u.cacheHitTokens}</span>
-              )}
-              {u.price !== undefined && (
-                <span className="dshDesktopUsagePrice">{u.price} {u.currency ?? ''}</span>
-              )}
-            </li>
-          )
-        })}
-      </ul>
     </div>
   )
 }
@@ -162,7 +110,6 @@ function EmptyState({ text }: { text: string }): JSX.Element {
 function extractArtifacts(snapshot: ConversationSnapshot | undefined): Extracted {
   const code: CodeItem[] = []
   const artifacts: ArtifactItem[] = []
-  const usage: UsageItem[] = []
   const fenced = /```(\w+)?\n([\s\S]*?)```/g
   for (const node of snapshot?.nodes ?? []) {
     if (node.kind === 'assistant') {
@@ -171,15 +118,13 @@ function extractArtifacts(snapshot: ConversationSnapshot | undefined): Extracted
           pushFenced(code, block.text, 'assistant', fenced)
         }
       }
-      const parsed = parseUsage((node as { usage?: unknown }).usage)
-      if (parsed !== null) usage.push({ seq: node.seq, turn: node.turn, usage: parsed })
     } else if (node.kind === 'tool-result') {
       const text = contentToText(node.content as unknown as readonly unknown[])
       pushFenced(code, text, node.call?.name ?? 'tool', fenced)
       artifacts.push({ tool: node.call?.name ?? 'tool', isError: node.isError, text, seq: node.seq })
     }
   }
-  return { code, artifacts, usage }
+  return { code, artifacts }
 }
 
 function pushFenced(target: CodeItem[], text: string, source: string, pattern: RegExp): void {

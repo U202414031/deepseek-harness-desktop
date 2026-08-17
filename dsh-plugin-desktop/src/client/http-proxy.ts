@@ -34,6 +34,10 @@ function collectHeaders(init: RequestInit | undefined): Record<string, string> {
  * Perform an HTTP request through the Host proxy.
  * @param input - absolute upstream URL (http/https).
  * @param init - standard fetch init; the real method/headers/body are forwarded.
+ *
+ * 失败策略：主进程代理优先。GET/HEAD 幂等，回环请求失败时重试一次（瞬时网络抖动常见）；
+ * 重试仍失败再退到直连（跨域通常会被 CORS 拦截）。两路都失败时抛出带具体原因的
+ * 错误，避免只留下 Chromium 笼统的 "Failed to fetch"。
  */
 export async function proxyFetch(input: string | URL, init?: RequestInit): Promise<Response> {
   const url = typeof input === 'string' ? input : input.toString()
@@ -44,10 +48,26 @@ export async function proxyFetch(input: string | URL, init?: RequestInit): Promi
     headers: { ...headers, 'x-proxy-url': url, 'x-proxy-method': method },
   }
   if (init?.body !== undefined) proxyInit.body = init.body
+  // Forward the caller's abort signal so long-running upstream calls (workflow
+  // agent nodes, for example) can actually be cancelled from the UI.
+  if (init?.signal !== undefined && init.signal !== null) proxyInit.signal = init.signal
+
+  // 幂等方法允许重试一次；POST 等非幂等请求不重试，避免上游重复执行。
+  const attempts = method === 'GET' || method === 'HEAD' ? 2 : 1
+  let lastProxyError: unknown
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      return await fetch(PROXY_PATH, proxyInit)
+    } catch (cause) {
+      lastProxyError = cause
+    }
+  }
+  // Proxy route unreachable — fall back to a direct request (may be blocked by CORS).
   try {
-    return await fetch(PROXY_PATH, proxyInit)
-  } catch {
-    // Proxy route unreachable — fall back to a direct request (may be blocked by CORS).
-    return fetch(input, init)
+    return await fetch(input, init)
+  } catch (fallbackError) {
+    const proxyDetail = lastProxyError instanceof Error ? lastProxyError.message : String(lastProxyError)
+    const fallbackDetail = fallbackError instanceof Error ? fallbackError.message : String(fallbackError)
+    throw new Error(`[代理诊断v4] 请求失败：主进程代理不可用（${proxyDetail}），直连回退也被拦截（${fallbackDetail}）`)
   }
 }

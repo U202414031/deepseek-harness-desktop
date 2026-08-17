@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import type { PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from './contracts.ts'
+import { WorkflowCanvas } from './features/workflow/WorkflowCanvas.tsx'
 import type { DesktopClientPlatform } from './environment.ts'
 import {
   ARTIFACTS_RAIL, computeDesktopColumns, DesktopLayoutState, MACOS_SIDEBAR_COLLAPSED,
@@ -17,7 +18,7 @@ export interface AdvancedFrameInjected {
 
 /** Full advanced root slot props. */
 export type AdvancedFrameProps = PropsRuntime<'root'>
-  & PropsRenderSlots<'sidebar' | 'conversation' | 'details' | 'sidebar.marketplace' | 'sidebar.skins' | 'sidebar.api' | 'sidebar.tools' | 'desktop.model-monitor' | 'artifacts' | 'shell.overlay'>
+  & PropsRenderSlots<'sidebar' | 'conversation' | 'details' | 'sidebar.marketplace' | 'sidebar.skins' | 'sidebar.api' | 'sidebar.tools' | 'sidebar.workflow' | 'desktop.model-monitor' | 'artifacts' | 'shell.overlay'>
   & AdvancedFrameInjected
 
 /** Desktop-owned transparent frame around the unchanged product surfaces. */
@@ -132,6 +133,17 @@ export function AdvancedFrame({ layout, platform, renderSlot, useSessions }: Adv
           >
             工具
           </button>
+          <button
+            type="button"
+            className="dshDesktopRailButton"
+            data-active={panels.leftPanel === 'workflow' || undefined}
+            title="工作流"
+            aria-label="工作流"
+            aria-pressed={panels.leftPanel === 'workflow'}
+            onClick={() => { layout.setLeftPanel('workflow') }}
+          >
+            流程
+          </button>
           <div className="dshDesktopRailDivider" aria-hidden="true" />
           <button
             type="button"
@@ -154,9 +166,13 @@ export function AdvancedFrame({ layout, platform, renderSlot, useSessions }: Adv
           {panels.leftPanel === 'skins' && renderSlot('sidebar.skins', {})}
           {panels.leftPanel === 'api' && renderSlot('sidebar.api', {})}
           {panels.leftPanel === 'tools' && renderSlot('sidebar.tools', {})}
+          {panels.leftPanel === 'workflow' && renderSlot('sidebar.workflow', {})}
         </div>
       </aside>
-      <main className="dshDesktopConversationSurface">{renderSlot('conversation', {})}</main>
+      <main className="dshDesktopConversationSurface" data-hidden={panels.leftPanel === 'workflow' || undefined}>{renderSlot('conversation', {})}</main>
+      {panels.leftPanel === 'workflow' && (
+        <main className="dshDesktopWorkflowMain"><WorkflowCanvas /></main>
+      )}
       {renderSlot('desktop.model-monitor', {})}
       <aside className="dshDesktopDetailsSurface">{renderSlot('details', {})}</aside>
       <aside className="dshDesktopArtifactsSurface" data-open={panels.artifacts > 0 || undefined}>

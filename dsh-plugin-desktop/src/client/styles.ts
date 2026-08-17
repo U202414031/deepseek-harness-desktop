@@ -211,6 +211,7 @@ html:has([aria-modal="true"]) .dshDesktopSidebarSurface::before { -webkit-app-re
 .dshDesktopFeatureTitle { margin: 0; font-size: 15px; font-weight: 600; }
 .dshDesktopFeatureSubtitle { margin: 4px 0 10px; font-size: 12px; color: var(--dsh-desktop-fg-muted); }
 .dshDesktopEmptyState, .dshDesktopMarketplaceNote { padding: 16px; font-size: 13px; color: var(--dsh-desktop-fg-muted); }
+.dshDesktopToolsError { margin: 10px 0 0; padding: 8px 10px; font-size: 12px; line-height: 1.6; color: #d6455a; background: rgba(214, 69, 90, 0.08); border: 1px solid rgba(214, 69, 90, 0.35); border-radius: 8px; word-break: break-all; }
 .dshDesktopMarketplaceLog { margin: 0 12px 8px; padding: 8px 10px; max-height: 160px; overflow: auto; white-space: pre-wrap; font-size: 11px; background: var(--dsh-desktop-code-bg); border: 1px solid var(--dsh-desktop-border); border-radius: 8px; color: var(--dsh-desktop-fg-muted); }
 
 /* ---- Buttons ---- */
@@ -248,14 +249,24 @@ html:has([aria-modal="true"]) .dshDesktopSidebarSurface::before { -webkit-app-re
 .dshDesktopSkinBadge { flex: 0 0 auto; font-size: 10px; padding: 2px 6px; border-radius: 999px; background: var(--dsh-desktop-accent); color: var(--dsh-desktop-accent-fg); }
 
 /* ---- Skin creator + importer ---- */
-.dshDesktopSkinCreator, .dshDesktopSkinImport { padding: 14px 16px; border-top: 1px solid var(--dsh-desktop-border); display: flex; flex-direction: column; gap: 10px; }
+.dshDesktopSkinCreator, .dshDesktopSkinImport { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
 .dshDesktopSkinCreatorTitle { margin: 0; font-size: 13px; font-weight: 600; color: var(--dsh-desktop-fg); }
 .dshDesktopSkinField { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--dsh-desktop-fg-muted); }
+.dshDesktopSkinCheckRow { display: flex; align-items: center; gap: 6px; color: var(--dsh-desktop-fg); cursor: pointer; }
+.dshDesktopSkinCheckRow input[type="checkbox"] { accent-color: var(--dsh-desktop-accent); cursor: pointer; }
 .dshDesktopSearchInput, .dshDesktopSkinTextArea, .dshDesktopFileInput { box-sizing: border-box; width: 100%; padding: 6px 8px; border: 1px solid var(--dsh-desktop-border); border-radius: 8px; background: var(--dsh-desktop-surface); color: var(--dsh-desktop-fg); font-size: 12px; font-family: inherit; }
 .dshDesktopSkinTextArea { min-height: 96px; resize: vertical; white-space: pre; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
 .dshDesktopSkinColors { display: flex; flex-wrap: wrap; gap: 10px; }
 .dshDesktopColorField { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 10px; color: var(--dsh-desktop-fg-muted); }
 .dshDesktopColorField input[type="color"] { width: 36px; height: 28px; padding: 0; border: 1px solid var(--dsh-desktop-border); border-radius: 8px; background: none; cursor: pointer; }
+
+/* ---- Skins panel: collapsible blocks (收放) ---- */
+.dshDesktopSkinSection { border-top: 1px solid var(--dsh-desktop-border); }
+.dshDesktopSkinSectionHeader { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 16px; background: transparent; border: 0; cursor: pointer; font: inherit; color: var(--dsh-desktop-fg); text-align: left; -webkit-app-region: no-drag; }
+.dshDesktopSkinSectionHeader:hover { background: var(--dsh-desktop-surface-2); }
+.dshDesktopSkinSectionTitle { font-size: 13px; font-weight: 600; }
+.dshDesktopSkinSectionChevron { font-size: 11px; color: var(--dsh-desktop-fg-muted); }
+.dshDesktopSkinSectionBody { display: flex; flex-direction: column; min-width: 0; }
 
 /* ---- Artifacts / code right panel ---- */
 .dshDesktopFrame[data-desktop-platform="darwin"] .dshDesktopArtifactsSurface { grid-row: 1 / -1; }
@@ -288,8 +299,7 @@ a.dshDesktopApiLink.dshDesktopPrimaryButton { color: var(--dsh-desktop-accent-fg
 a.dshDesktopApiLink.dshDesktopSecondaryButton { color: var(--dsh-desktop-fg); }
 
 
-/* ---- Usage tab (right panel) ---- */
-.dshDesktopUsageWrap { display: flex; flex-direction: column; gap: 10px; }
+/* ---- Usage (left API panel + inline turn footer) ---- */
 .dshDesktopUsageTotal { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border: 1px solid var(--dsh-desktop-border); border-radius: 10px; background: var(--dsh-desktop-surface); font-size: 12px; color: var(--dsh-desktop-fg-muted); }
 .dshDesktopUsageTotal b { color: var(--dsh-desktop-fg); font-size: 13px; }
 .dshDesktopUsageList { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
@@ -297,6 +307,28 @@ a.dshDesktopApiLink.dshDesktopSecondaryButton { color: var(--dsh-desktop-fg); }
 .dshDesktopUsageTurn { font-size: 13px; font-weight: 600; color: var(--dsh-desktop-fg); }
 .dshDesktopUsageNumbers { font-size: 12px; color: var(--dsh-desktop-fg-muted); }
 .dshDesktopUsageCache, .dshDesktopUsagePrice { font-size: 11px; color: var(--dsh-desktop-accent); }
+.dshDesktopUsageSection { display: flex; flex-direction: column; gap: 6px; }
+.dshDesktopUsageHeading { margin: 0; font-size: 12px; font-weight: 600; color: var(--dsh-desktop-fg-muted); }
+.dshDesktopUsageEmpty { margin: 0; font-size: 12px; color: var(--dsh-desktop-fg-muted); }
+.dshDesktopUsageMore { margin: 0; font-size: 11px; color: var(--dsh-desktop-fg-muted); }
+.dshDesktopUsageExpand { align-self: flex-start; padding: 4px 10px; border: 1px solid var(--dsh-desktop-border); border-radius: 999px; background: var(--dsh-desktop-surface); color: var(--dsh-desktop-fg-muted); font-size: 11px; cursor: pointer; -webkit-app-region: no-drag; }
+.dshDesktopUsageExpand:hover { color: var(--dsh-desktop-accent); border-color: var(--dsh-desktop-accent); }
+.dshDesktopUsageTurnRow { display: flex; align-items: baseline; gap: 8px; }
+.dshDesktopUsageTime { font-size: 11px; color: var(--dsh-desktop-fg-muted); margin-left: auto; }
+.dshDesktopUsageModel { font-size: 11px; color: var(--dsh-desktop-fg-muted); }
+.dshDesktopUsageJump { display: flex; flex-direction: column; gap: 2px; width: 100%; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; -webkit-app-region: no-drag; }
+.dshDesktopUsageJump:hover .dshDesktopUsageTurn { color: var(--dsh-desktop-accent); }
+.dshDesktopUsageJump:focus-visible { outline: 2px solid var(--dsh-desktop-accent); outline-offset: 2px; border-radius: 6px; }
+.dshDesktopChatFlash { animation: dshDesktopFlashRow 1.8s ease-out; }
+@keyframes dshDesktopFlashRow { 0%, 100% { box-shadow: none; } 15%, 65% { box-shadow: 0 0 0 2px var(--dsh-desktop-accent), 0 0 0 6px color-mix(in srgb, var(--dsh-desktop-accent) 25%, transparent); } }
+.dshDesktopTurnUsage { display: flex; flex-direction: column; gap: 3px; margin-top: 8px; padding: 7px 10px; border: 1px dashed var(--dsw-alias-border-l2, var(--dsh-desktop-border)); border-radius: 10px; background: color-mix(in srgb, var(--dsw-alias-bg-elevated, var(--dsh-desktop-surface)) 70%, transparent); font-size: 11px; color: var(--dsw-alias-label-secondary, var(--dsh-desktop-fg-muted)); }
+.dshDesktopTurnUsageTitle { font-size: 11px; font-weight: 600; }
+.dshDesktopTurnUsageRow { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.dshDesktopTurnUsageCost { color: var(--dsw-alias-accent, var(--dsh-desktop-accent)); }
+.dshDesktopUsageLive { display: inline-block; margin-left: 8px; font-size: 11px; font-weight: 500; color: var(--dsh-desktop-accent); animation: dshDesktopPulse 1.2s ease-in-out infinite; }
+@keyframes dshDesktopPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+.dshDesktopProviderDetectRaw { font-size: 11px; color: var(--dsh-desktop-fg-muted); word-break: break-all; }
+.dshDesktopBalanceRemain { border-color: var(--dsh-desktop-accent); }
 .dshDesktopArtifactsHeader { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .dshDesktopArtifactsHeader__buttons { display: flex; align-items: center; gap: 2px; margin-left: auto; }
 .dshDesktopIconButton { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--dsh-desktop-fg-muted); cursor: pointer; -webkit-app-region: no-drag; }
@@ -380,6 +412,99 @@ a.dshDesktopApiLink.dshDesktopSecondaryButton { color: var(--dsh-desktop-fg); }
 .dshDesktopToolsBadge[data-status="failed"], .dshDesktopToolsBadge[data-status="missed"] { color: #d6455a; }
 .dshDesktopToolsBadge[data-status="pending"] { color: var(--dsh-desktop-accent); }
 .dshDesktopToolsSchedResult { font-size: 11px; color: var(--dsh-desktop-fg-muted); margin: 0; }
+
+/* ---- Workflow feature: left panel list ---- */
+.dshDesktopWorkflowPanel { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 10px; min-height: 0; overflow: hidden; }
+.dshDesktopWorkflowNew { align-self: flex-start; margin: 14px 16px 0; }
+.dshDesktopWorkflowList { list-style: none; margin: 0; padding: 8px 12px; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; flex: 1 1 auto; min-height: 0; }
+.dshDesktopWorkflowRow { display: flex; align-items: center; gap: 6px; }
+.dshDesktopWorkflowCard { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; text-align: left; padding: 10px 12px; border: 1px solid var(--dsh-desktop-border); border-radius: 10px; background: var(--dsh-desktop-surface); cursor: pointer; font: inherit; color: var(--dsh-desktop-fg); -webkit-app-region: no-drag; }
+.dshDesktopWorkflowCard:hover { background: var(--dsh-desktop-surface-2); }
+.dshDesktopWorkflowCard[data-selected] { border-color: var(--dsh-desktop-accent); box-shadow: 0 0 0 1px var(--dsh-desktop-accent); }
+.dshDesktopWorkflowCardName { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; }
+.dshDesktopWorkflowRunning { font-size: 10px; padding: 1px 6px; border-radius: 999px; background: var(--dsh-desktop-accent); color: var(--dsh-desktop-accent-fg); }
+.dshDesktopWorkflowCardMeta { font-size: 11px; color: var(--dsh-desktop-fg-muted); }
+.dshDesktopWorkflowRowActions { flex: 0 0 auto; display: flex; align-items: center; gap: 2px; }
+.dshDesktopWorkflowConfirm { font-size: 11px; padding: 4px 8px; }
+.dshDesktopWorkflowHint { margin: auto 16px 16px; font-size: 11px; line-height: 1.5; color: var(--dsh-desktop-fg-muted); }
+
+/* ---- Workflow feature: main canvas ---- */
+.dshDesktopWorkflowMain { grid-column: 2; grid-row: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--dsh-desktop-bg); }
+.dshDesktopFrame[data-desktop-platform="darwin"] .dshDesktopWorkflowMain,
+.dshDesktopFrame[data-desktop-platform="win32"] .dshDesktopWorkflowMain { grid-row: 2; }
+.dshDesktopConversationSurface[data-hidden] { display: none; }
+.dshDesktopWorkflowStage { flex: 1 1 auto; min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+.dshDesktopWorkflowBlank { margin: auto; max-width: 420px; text-align: center; padding: 24px; }
+.dshDesktopWorkflowBlank h3 { margin: 0 0 8px; font-size: 16px; color: var(--dsh-desktop-fg); }
+.dshDesktopWorkflowBlank p { margin: 0 0 16px; font-size: 13px; color: var(--dsh-desktop-fg-muted); }
+.dshDesktopWorkflowToolbar { flex: 0 0 auto; display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--dsh-desktop-border); background: var(--dsh-desktop-surface); }
+.dshDesktopWorkflowTitleInput { flex: 1 1 auto; min-width: 0; font-size: 14px; font-weight: 600; padding: 6px 10px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--dsh-desktop-fg); }
+.dshDesktopWorkflowTitleInput:hover { border-color: var(--dsh-desktop-border); }
+.dshDesktopWorkflowTitleInput:focus { border-color: var(--dsh-desktop-accent); outline: none; background: var(--dsh-desktop-bg); }
+.dshDesktopWorkflowPalette { display: flex; gap: 6px; }
+.dshDesktopWorkflowZoom { display: flex; align-items: center; gap: 6px; }
+.dshDesktopWorkflowZoomValue { font-size: 12px; color: var(--dsh-desktop-fg-muted); min-width: 40px; text-align: center; }
+.dshDesktopWorkflowBody { position: relative; flex: 1 1 auto; min-height: 0; display: flex; }
+.dshDesktopWorkflowCanvas { position: relative; flex: 1 1 auto; min-width: 0; overflow: hidden; cursor: grab; touch-action: none; background-color: var(--dsh-desktop-bg); background-image: radial-gradient(circle, var(--dsh-desktop-border) 1px, transparent 1px); background-size: 22px 22px; }
+.dshDesktopWorkflowCanvas[data-linking] { cursor: crosshair; }
+.dshDesktopWorkflowLayer { position: absolute; top: 0; left: 0; transform-origin: 0 0; }
+.dshDesktopWorkflowEdges { position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.dshDesktopWorkflowEdgeLine { fill: none; stroke: var(--dsh-desktop-border); stroke-width: 2; }
+.dshDesktopWorkflowEdge[data-active] .dshDesktopWorkflowEdgeLine { stroke: var(--dsh-desktop-accent); }
+.dshDesktopWorkflowEdgeHit { fill: none; stroke: transparent; stroke-width: 14; pointer-events: stroke; cursor: pointer; }
+.dshDesktopWorkflowEdgeHit:hover + .dshDesktopWorkflowEdgeLine,
+.dshDesktopWorkflowEdge:hover .dshDesktopWorkflowEdgeLine { stroke: var(--dsh-desktop-accent); }
+.dshDesktopWorkflowEdgeDraft { fill: none; stroke: var(--dsh-desktop-accent); stroke-width: 2; stroke-dasharray: 5 4; }
+.dshDesktopWorkflowNode { position: absolute; box-sizing: border-box; display: flex; flex-direction: column; border: 1px solid var(--dsh-desktop-border); border-radius: 12px; background: var(--dsh-desktop-surface); box-shadow: 0 6px 18px rgba(0,0,0,0.08); overflow: visible; cursor: move; touch-action: none; }
+.dshDesktopWorkflowNode[data-selected] { border-color: var(--dsh-desktop-accent); box-shadow: 0 0 0 2px var(--dsh-desktop-accent); }
+.dshDesktopWorkflowNode[data-kind="start"] { background: color-mix(in srgb, var(--dsh-desktop-accent) 12%, var(--dsh-desktop-surface)); }
+.dshDesktopWorkflowNode[data-kind="end"] { background: color-mix(in srgb, var(--dsh-desktop-fg-muted) 14%, var(--dsh-desktop-surface)); }
+.dshDesktopWorkflowNodeHead { display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: var(--dsh-desktop-surface-2); cursor: grab; touch-action: none; border-top-left-radius: 11px; border-top-right-radius: 11px; overflow: hidden; }
+.dshDesktopWorkflowNodeBadge { font-size: 10px; padding: 1px 6px; border-radius: 999px; background: var(--dsh-desktop-accent); color: var(--dsh-desktop-accent-fg); font-weight: 600; }
+.dshDesktopWorkflowNodeName { flex: 1 1 auto; min-width: 0; font-size: 12px; font-weight: 600; color: var(--dsh-desktop-fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dshDesktopWorkflowNodeOrder { font-size: 10px; color: var(--dsh-desktop-fg-muted); }
+.dshDesktopWorkflowNodeDot { width: 8px; height: 8px; border-radius: 999px; background: var(--dsh-desktop-fg-muted); flex: 0 0 auto; }
+.dshDesktopWorkflowNodeDot[data-status="running"] { background: var(--dsh-desktop-accent); animation: dshDesktopPulse 1.1s ease-in-out infinite; }
+.dshDesktopWorkflowNodeDot[data-status="done"] { background: #1f9d55; }
+.dshDesktopWorkflowNodeDot[data-status="error"] { background: #d6455a; }
+.dshDesktopWorkflowNodeDelete { flex: 0 0 auto; width: 20px; height: 20px; border: 0; background: transparent; color: var(--dsh-desktop-fg-muted); font-size: 16px; line-height: 1; cursor: pointer; border-radius: 6px; }
+.dshDesktopWorkflowNodeDelete:hover { background: rgba(214,69,90,0.15); color: #d6455a; }
+.dshDesktopWorkflowNodeBody { flex: 1 1 auto; padding: 8px; display: flex; flex-direction: column; gap: 4px; min-height: 0; overflow: hidden; border-bottom-left-radius: 11px; border-bottom-right-radius: 11px; }
+.dshDesktopWorkflowNodeModel { font-size: 11px; font-weight: 600; color: var(--dsh-desktop-accent); }
+.dshDesktopWorkflowNodePrompt { font-size: 11px; color: var(--dsh-desktop-fg-muted); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; }
+.dshDesktopWorkflowNodeResult { font-size: 10px; color: var(--dsh-desktop-fg-muted); background: var(--dsh-desktop-code-bg); border-radius: 6px; padding: 3px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dshDesktopWorkflowNodeResult[data-error] { color: #d6455a; background: rgba(214,69,90,0.1); }
+.dshDesktopWorkflowPort { position: absolute; width: 16px; height: 16px; border-radius: 999px; background: var(--dsh-desktop-accent); border: 2px solid var(--dsh-desktop-surface); top: 50%; transform: translateY(-50%); z-index: 2; cursor: crosshair; box-shadow: 0 0 0 3px color-mix(in srgb, var(--dsh-desktop-accent) 35%, transparent); transition: transform 0.12s ease; }
+.dshDesktopWorkflowPort::before { content: ""; position: absolute; inset: -10px; border-radius: 999px; }
+.dshDesktopWorkflowPort[data-side="in"] { left: -9px; background: var(--dsh-desktop-surface); border-color: var(--dsh-desktop-accent); cursor: pointer; }
+.dshDesktopWorkflowPort[data-side="out"] { right: -9px; }
+.dshDesktopWorkflowPort[data-side="out"]:hover { transform: translateY(-50%) scale(1.2); }
+.dshDesktopWorkflowWarn { position: absolute; left: 12px; bottom: 12px; margin: 0; padding: 6px 12px; font-size: 12px; color: #b3870a; background: rgba(179,135,10,0.12); border: 1px solid rgba(179,135,10,0.4); border-radius: 8px; }
+.dshDesktopWorkflowTip { position: absolute; right: 12px; bottom: 12px; margin: 0; font-size: 11px; color: var(--dsh-desktop-fg-muted); background: var(--dsh-desktop-surface); border: 1px solid var(--dsh-desktop-border); border-radius: 8px; padding: 5px 10px; }
+.dshDesktopWorkflowInspector { flex: 0 0 320px; max-width: 360px; border-left: 1px solid var(--dsh-desktop-border); background: var(--dsh-desktop-surface); display: flex; flex-direction: column; gap: 12px; padding: 14px 16px; overflow-y: auto; }
+.dshDesktopWorkflowInspectorHead { display: flex; align-items: center; justify-content: space-between; }
+.dshDesktopWorkflowInspectorHead h3 { margin: 0; font-size: 14px; color: var(--dsh-desktop-fg); }
+.dshDesktopWorkflowInspectorKind { margin: 0; font-size: 12px; color: var(--dsh-desktop-fg-muted); }
+.dshDesktopWorkflowInspectorRow { display: flex; gap: 10px; }
+.dshDesktopWorkflowInspectorRow .dshDesktopSkinField { flex: 1 1 0; }
+.dshDesktopWorkflowInspectorHint { margin: 0; font-size: 11px; color: var(--dsh-desktop-fg-muted); line-height: 1.5; }
+.dshDesktopWorkflowInspectorHint code { background: var(--dsh-desktop-code-bg); padding: 1px 4px; border-radius: 4px; font-size: 10px; }
+.dshDesktopWorkflowInspectorResult { display: flex; flex-direction: column; gap: 4px; }
+.dshDesktopWorkflowInspectorResultHead { font-size: 12px; font-weight: 600; color: var(--dsh-desktop-fg); }
+.dshDesktopWorkflowInspectorResult pre { margin: 0; max-height: 160px; overflow: auto; white-space: pre-wrap; font-size: 11px; line-height: 1.5; background: var(--dsh-desktop-code-bg); border: 1px solid var(--dsh-desktop-border); border-radius: 8px; padding: 8px; color: var(--dsh-desktop-fg); }
+.dshDesktopWorkflowInspectorResult pre[data-error] { color: #d6455a; border-color: rgba(214,69,90,0.4); }
+.dshDesktopWorkflowInspectorDelete { align-self: flex-start; }
+.dshDesktopWorkflowInspectorStep { margin: 4px 0 0; font-size: 12px; font-weight: 600; color: var(--dsh-desktop-accent); }
+.dshDesktopWorkflowTemplateRow { display: flex; flex-wrap: wrap; gap: 6px; }
+.dshDesktopWorkflowTemplateChip { font-size: 11px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--dsh-desktop-border); background: var(--dsh-desktop-surface-2); color: var(--dsh-desktop-fg); cursor: pointer; transition: background 0.12s ease, border-color 0.12s ease; }
+.dshDesktopWorkflowTemplateChip:hover { background: color-mix(in srgb, var(--dsh-desktop-accent) 14%, var(--dsh-desktop-surface-2)); border-color: var(--dsh-desktop-accent); }
+.dshDesktopWorkflowTextArea { min-height: 80px; }
+.dshDesktopWorkflowRunBar { flex: 0 0 auto; display: flex; flex-direction: column; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--dsh-desktop-border); background: var(--dsh-desktop-surface); }
+.dshDesktopWorkflowInput { box-sizing: border-box; width: 100%; resize: vertical; padding: 6px 8px; border: 1px solid var(--dsh-desktop-border); border-radius: 8px; background: var(--dsh-desktop-bg); color: var(--dsh-desktop-fg); font-size: 12px; font-family: inherit; }
+.dshDesktopWorkflowRunActions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.dshDesktopWorkflowRunStatus { margin-left: auto; font-size: 12px; color: var(--dsh-desktop-fg-muted); }
+.dshDesktopWorkflowRunError { color: #d6455a; margin-left: 4px; }
+.dshDesktopWorkflowLog { margin: 0; max-height: 180px; overflow: auto; white-space: pre-wrap; font-size: 11px; line-height: 1.5; background: var(--dsh-desktop-code-bg); border: 1px solid var(--dsh-desktop-border); border-radius: 8px; padding: 8px 10px; color: var(--dsh-desktop-fg); }
 `
 
 

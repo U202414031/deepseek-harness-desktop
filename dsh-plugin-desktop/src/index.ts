@@ -12,6 +12,7 @@ import {
 import { settingsNamespace } from '@deepseek-ai/dsh-settings'
 import { installMarketplaceRoutes } from './marketplace-host.ts'
 import { installHttpProxy } from './http-proxy.ts'
+import { installSkinsRoutes } from './skins-host.ts'
 import type { DesktopShellMode } from './runtime.ts'
 import type {} from './runtime.ts'
 
@@ -142,6 +143,10 @@ export function apply(ctx: Context, config: Config): void {
   // The sandboxed renderer cannot reach third-party APIs (CORS); let it tunnel
   // requests through the Host process, which uses Node fetch (no CORS).
   ctx.effect(() => installHttpProxy(ctx), 'dsh-plugin-desktop: http proxy')
+  // Whale-skin assets (videos / backdrops / sprite frames) are served over the
+  // loopback server because the sandboxed renderer rejects file:// URLs; skin
+  // definitions reference them as same-origin `/desktop/skins/...` paths.
+  ctx.effect(() => installSkinsRoutes(ctx), 'dsh-plugin-desktop: skins asset routes')
   if (config.mode === 'advanced') {
     ctx.on('settings/updated', (namespace, next) => {
       if (namespace !== UI_THEME_SETTINGS_NAMESPACE) return

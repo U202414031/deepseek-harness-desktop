@@ -105,10 +105,32 @@ function parseAmbient(raw: unknown): WhaleAmbient | null {
   }
   const bgWashAlpha = typeof a.bgWashAlpha === 'number' ? Math.max(0, Math.min(1, a.bgWashAlpha)) : 0.4
   const bgImage = typeof a.bgImage === 'string' && a.bgImage.length > 0 ? a.bgImage : undefined
+  const video = typeof a.video === 'string' && a.video.length > 0 ? a.video : undefined
+  const dynamicBgTypes = ['water', 'aurora', 'sunrise', 'starfield', 'bubbles', 'snow', 'fire', 'sakura', 'cyber', 'rain'] as const
+  const dynamicBg = (typeof a.dynamicBg === 'string' && (dynamicBgTypes as readonly string[]).includes(a.dynamicBg)) ? a.dynamicBg as typeof dynamicBgTypes[number] : undefined
+  const charImage = typeof a.charImage === 'string' && a.charImage.length > 0 ? a.charImage : undefined
+  const charAnimTypes = ['breath', 'lookUp', 'nod', 'float', 'wave', 'twirl', 'hairFlip', 'umbrella'] as const
+  const charAnim = (typeof a.charAnim === 'string' && (charAnimTypes as readonly string[]).includes(a.charAnim)) ? a.charAnim as typeof charAnimTypes[number] : undefined
+  const bgVideo = typeof a.bgVideo === 'string' && a.bgVideo.length > 0 ? a.bgVideo : undefined
+  let charFrames: string[] | undefined
+  if (Array.isArray(a.charFrames)) {
+    const frames = a.charFrames.filter((u): u is string => typeof u === 'string' && u.length > 0)
+    if (frames.length > 0) charFrames = frames
+  }
+  const charFps = typeof a.charFps === 'number' && a.charFps > 0 ? Math.min(30, a.charFps) : undefined
+  const particles = a.particles !== false
   const ambient: WhaleAmbient = { particle, glow, density, shape, speed, mascot, bgWashAlpha }
   if (particle2 !== undefined) ambient.particle2 = particle2
   if (bgWash !== undefined) ambient.bgWash = bgWash
   if (bgImage !== undefined) ambient.bgImage = bgImage
+  if (video !== undefined) ambient.video = video
+  if (bgVideo !== undefined) ambient.bgVideo = bgVideo
+  if (charFrames !== undefined) ambient.charFrames = charFrames
+  if (charFps !== undefined) ambient.charFps = charFps
+  if (dynamicBg !== undefined) ambient.dynamicBg = dynamicBg
+  if (charImage !== undefined) ambient.charImage = charImage
+  if (charAnim !== undefined) ambient.charAnim = charAnim
+  if (!particles) ambient.particles = false
   return ambient
 }
 
