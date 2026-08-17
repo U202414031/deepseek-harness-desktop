@@ -3,7 +3,7 @@ import type { WorkflowNode, WorkflowNodeKind } from './workflow-types.ts'
 import type { NodeRunState, WorkflowRunState } from './workflow-store.ts'
 import { EMPTY_RUN, runStore, workflowStore } from './workflow-store.ts'
 import { NODE_KIND_LABELS, NODE_WIDTH, edgePath, inputPort, nodeHeight, outputPort } from './workflow-types.ts'
-import { PROVIDER_ENDPOINTS, defaultModelFor, findEndpoint } from './model-catalog.ts'
+import { PROVIDER_ENDPOINTS, defaultModelFor, findEndpoint, modelCategory, modelLabel } from './model-catalog.ts'
 import { runWorkflow, topoOrder } from './workflow-runner.ts'
 
 const MIN_SCALE = 0.4
@@ -17,8 +17,7 @@ interface ViewTransform {
 
 type DragState =
   | { kind: 'pan'; startX: number; startY: number; tx: number; ty: number }
-  | { kind: 'node'; nodeId: string; dx: number; dy: number }
-  | { kind: 'link'; from: string }
+  | { kind: 'node'; nodeId: string; dx: number; dy: number; moved: boolean; startX: number; startY: number }
 
 const subscribeWorkflows = (listener: () => void): (() => void) => workflowStore.subscribe(listener)
 const readWorkflows = (): ReturnType<typeof workflowStore.getSnapshot> => workflowStore.getSnapshot()
@@ -42,6 +41,11 @@ const AGENT_PROMPT_TEMPLATES: ReadonlyArray<{ label: string; prompt: string }> =
 /**
  * Coze-style node canvas for the active workflow: place nodes, wire them into an
  * execution order, configure each node's model/API/prompt, and run the graph.
+ *
+ * 连线交互（两种都支持，互为兜底）：
+ *  1) 拖拽式（主）：在节点「右侧输出圆点」按下，拖到目标节点（任意位置）松手即连接；
+ *  2) 点击式（备）：点一下输出圆点进入连线模式，再点目标节点（圆点或本体）完成连接；
+ *  点击空白 / 右键 → 取消连线；右键一条已有连线 → 删除该连线。
  */
 export function WorkflowCanvas(): JSX.Element {
   const { workflows, activeId } = useSyncExternalStore(subscribeWorkflows, readWorkflows)
@@ -53,10 +57,17 @@ export function WorkflowCanvas(): JSX.Element {
   const rootRef = useRef<HTMLDivElement>(null)
   const dragRef = useRef<DragState | null>(null)
   const abortRef = useRef<AbortController | null>(null)
+  /** Pointer-down position of an in-progress link drag, used to detect real movement. */
+  const linkStartRef = useRef<{ x: number; y: number } | null>(null)
+  /** Whether the link drag moved beyond the click threshold. */
+  const linkMovedRef = useRef(false)
   const [view, setView] = useState<ViewTransform>({ tx: 48, ty: 32, scale: 1 })
   const [dragNode, setDragNode] = useState<{ id: string; x: number; y: number } | null>(null)
-  const [linkEnd, setLinkEnd] = useState<{ x: number; y: number } | null>(null)
+  const [linkCursor, setLinkCursor] = useState<{ x: number; y: number } | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [linkingFrom, setLinkingFrom] = useState<string | null>(null)
+  /** True while the pointer is held down dragging a rubber-band from an output port. */
+  const [linkDragging, setLinkDragging] = useState(false)
   const [showLog, setShowLog] = useState(false)
 
   /** Convert client coordinates into canvas space. */
@@ -85,7 +96,7 @@ export function WorkflowCanvas(): JSX.Element {
     }
     element.addEventListener('wheel', onWheel, { passive: false })
     return () => { element.removeEventListener('wheel', onWheel) }
-  }, [])
+  }, [workflow !== null])
 
   useEffect(() => { setSelectedId(null) }, [workflowId])
   useEffect(() => () => { abortRef.current?.abort() }, [])
@@ -96,29 +107,102 @@ export function WorkflowCanvas(): JSX.Element {
     dragNode !== null && dragNode.id === node.id ? { ...node, x: dragNode.x, y: dragNode.y } : node
   ), [dragNode])
 
+  // —— 连线状态机 ——
+  const cancelLink = useCallback(() => {
+    setLinkingFrom(null)
+    setLinkDragging(false)
+    setLinkCursor(null)
+  }, [])
+  const beginLink = useCallback((nodeId: string) => {
+    setLinkingFrom(nodeId)
+    setLinkCursor(null)
+  }, [])
+  /** Click-to-connect fallback: wire the armed source to the clicked target. */
+  const finishLink = useCallback((toNodeId: string) => {
+    setLinkingFrom((current) => {
+      if (current !== null && current !== toNodeId) {
+        workflowStore.connect(workflowId, current, toNodeId)
+      }
+      return null
+    })
+    setLinkDragging(false)
+    setLinkCursor(null)
+  }, [workflowId])
+
+  /** @returns the workflow node id under a viewport point, or null when over empty space. */
+  const nodeIdAtPoint = useCallback((clientX: number, clientY: number): string | null => {
+    const element = document.elementFromPoint(clientX, clientY)
+    const card = element?.closest('[data-workflow-node]')
+    if (card !== null && card instanceof HTMLElement) return card.getAttribute('data-workflow-node')
+    return null
+  }, [])
+
   const onPointerDownBackground = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return
+    // 拖拽连线进行中：新的按下不应触发（指针已被捕获），保险起见直接忽略
+    if (linkDragging) {
+      event.preventDefault()
+      return
+    }
+    // 连线（已点下输出端口的"点击模式"）状态下点空白处 = 取消连线
+    if (linkingFrom !== null) {
+      event.preventDefault()
+      cancelLink()
+      return
+    }
+    event.preventDefault()
     dragRef.current = { kind: 'pan', startX: event.clientX, startY: event.clientY, tx: view.tx, ty: view.ty }
     rootRef.current?.setPointerCapture(event.pointerId)
     setSelectedId(null)
-  }, [view.tx, view.ty])
+  }, [view.tx, view.ty, linkingFrom, linkDragging, cancelLink])
 
   const onPointerMove = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current
-    if (drag === null) return
+    if (drag === null) {
+      // 没有按住节点/平移：连线状态下让草稿线跟随光标（拖拽式和点击式都适用）
+      if (linkingFrom !== null) {
+        if (linkStartRef.current !== null && Math.hypot(event.clientX - linkStartRef.current.x, event.clientY - linkStartRef.current.y) > 4) {
+          linkMovedRef.current = true
+        }
+        setLinkCursor(toCanvas(event.clientX, event.clientY))
+      }
+      return
+    }
     if (drag.kind === 'pan') {
       setView((previous) => ({ ...previous, tx: drag.tx + (event.clientX - drag.startX), ty: drag.ty + (event.clientY - drag.startY) }))
       return
     }
     const point = toCanvas(event.clientX, event.clientY)
-    if (drag.kind === 'node') {
-      setDragNode({ id: drag.nodeId, x: point.x - drag.dx, y: point.y - drag.dy })
-      return
+    if (!drag.moved && (Math.abs(event.clientX - drag.startX) > 3 || Math.abs(event.clientY - drag.startY) > 3)) {
+      drag.moved = true
     }
-    setLinkEnd(point)
-  }, [toCanvas])
+    setDragNode({ id: drag.nodeId, x: point.x - drag.dx, y: point.y - drag.dy })
+  }, [toCanvas, linkingFrom])
 
   const onPointerUp = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    // 拖拽式连线：在输出端口按下、拖到目标节点松手
+    if (linkDragging) {
+      const target = nodeIdAtPoint(event.clientX, event.clientY)
+      const source = linkingFrom
+      const moved = linkMovedRef.current
+      if (source !== null && target !== null && target !== source && workflowId.length > 0) {
+        workflowStore.connect(workflowId, source, target)
+      }
+      rootRef.current?.releasePointerCapture(event.pointerId)
+      setLinkDragging(false)
+      if (source !== null && target !== null && target !== source) {
+        // 成功连上 → 收尾
+        setLinkingFrom(null)
+        setLinkCursor(null)
+      } else if (moved) {
+        // 拖动了但没落在有效目标上 → 直接取消
+        cancelLink()
+      } else {
+        // 纯点击输出端口 → 进入"点击模式"待用，等下次点击目标
+        setLinkCursor(null)
+      }
+      return
+    }
     const drag = dragRef.current
     dragRef.current = null
     rootRef.current?.releasePointerCapture(event.pointerId)
@@ -126,39 +210,42 @@ export function WorkflowCanvas(): JSX.Element {
     if (drag.kind === 'node') {
       if (dragNode !== null && workflow !== null) workflowStore.moveNode(workflow.id, drag.nodeId, dragNode.x, dragNode.y)
       setDragNode(null)
-      return
+      // 只有真正的点击（没拖动）才打开右侧编辑框，拖动时绝不弹框
+      if (!drag.moved) setSelectedId(drag.nodeId)
     }
-    if (drag.kind === 'link') {
-      setLinkEnd(null)
-      if (workflow === null) return
-      // Forgiving drop target: connect to whatever node the pointer was released
-      // over, instead of requiring a pixel-perfect hit on the 14px port circle.
-      const target = document.elementFromPoint(event.clientX, event.clientY)
-      const nodeEl = target?.closest('[data-workflow-node]')
-      const to = nodeEl?.getAttribute('data-workflow-node')
-      if (typeof to === 'string' && to.length > 0 && to !== drag.from) {
-        workflowStore.connect(workflow.id, drag.from, to)
-      }
-    }
-  }, [dragNode, workflow])
+  }, [dragNode, workflow, linkingFrom, linkDragging, nodeIdAtPoint, toCanvas, workflowId, cancelLink])
+
+  const onCanvasContextMenu = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    event.preventDefault()
+    // 右键空白处：连线中则取消；否则不处理（保留系统菜单逻辑，但本应用内直接阻止）
+    if (linkingFrom !== null) cancelLink()
+  }, [linkingFrom, cancelLink])
 
   const startNodeDrag = useCallback((event: React.PointerEvent<HTMLElement>, node: WorkflowNode) => {
     if (event.button !== 0) return
+    // 连线进行中：在「目标节点」任意位置按下 = 完成连线；按在「起点自己」身上 = 取消
+    if (linkingFrom !== null) {
+      event.stopPropagation()
+      event.preventDefault()
+      if (linkingFrom === node.id) cancelLink()
+      else finishLink(node.id)
+      return
+    }
     event.stopPropagation()
+    event.preventDefault()
     const point = toCanvas(event.clientX, event.clientY)
-    dragRef.current = { kind: 'node', nodeId: node.id, dx: point.x - node.x, dy: point.y - node.y }
+    dragRef.current = {
+      kind: 'node',
+      nodeId: node.id,
+      dx: point.x - node.x,
+      dy: point.y - node.y,
+      moved: false,
+      startX: event.clientX,
+      startY: event.clientY,
+    }
     setDragNode({ id: node.id, x: node.x, y: node.y })
-    setSelectedId(node.id)
     rootRef.current?.setPointerCapture(event.pointerId)
-  }, [toCanvas])
-
-  const startLink = useCallback((event: React.PointerEvent<HTMLElement>, node: WorkflowNode) => {
-    if (event.button !== 0) return
-    event.stopPropagation()
-    dragRef.current = { kind: 'link', from: node.id }
-    setLinkEnd(toCanvas(event.clientX, event.clientY))
-    rootRef.current?.setPointerCapture(event.pointerId)
-  }, [toCanvas])
+  }, [toCanvas, linkingFrom, workflowId, cancelLink, finishLink])
 
   /** Place a node at the centre of the current viewport. */
   const addNode = useCallback((kind: WorkflowNodeKind) => {
@@ -280,67 +367,90 @@ export function WorkflowCanvas(): JSX.Element {
         <div
           ref={rootRef}
           className="dshDesktopWorkflowCanvas"
-          data-linking={linkEnd !== null || undefined}
+          data-linking={linkingFrom !== null || undefined}
           onPointerDown={onPointerDownBackground}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
           onDoubleClick={onDoubleClickBackground}
+          onContextMenu={onCanvasContextMenu}
         >
-          <div
-            className="dshDesktopWorkflowLayer"
-            style={{ transform: `translate(${String(view.tx)}px, ${String(view.ty)}px) scale(${String(view.scale)})` }}
-          >
             <svg className="dshDesktopWorkflowEdges" aria-hidden="true">
-              {workflow.edges.map((edge) => {
-                const from = workflow.nodes.find((node) => node.id === edge.from)
-                const to = workflow.nodes.find((node) => node.id === edge.to)
-                if (from === undefined || to === undefined) return null
-                const path = edgePath(outputPort(positionOf(from)), inputPort(positionOf(to)))
-                const active = run.nodes[edge.from]?.status === 'done' && run.nodes[edge.to]?.status === 'running'
-                return (
-                  <g key={edge.id} className="dshDesktopWorkflowEdge" data-active={active || undefined}>
-                    <path className="dshDesktopWorkflowEdgeLine" d={path} />
-                    <path
-                      className="dshDesktopWorkflowEdgeHit"
-                      d={path}
-                      onClick={() => { workflowStore.disconnect(workflow.id, edge.id) }}
-                    >
-                      <title>点击删除这条连线</title>
-                    </path>
-                  </g>
-                )
-              })}
-              {linkEnd !== null && (() => {
-                const drag = dragRef.current
-                if (drag === null || drag.kind !== 'link') return null
-                const from = workflow.nodes.find((node) => node.id === drag.from)
-                if (from === undefined) return null
-                return <path className="dshDesktopWorkflowEdgeDraft" d={edgePath(outputPort(positionOf(from)), linkEnd)} />
-              })()}
+              <defs>
+                <marker id="dshWorkflowArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                  <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--dsh-desktop-border)" />
+                </marker>
+                <marker id="dshWorkflowArrowActive" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                  <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--dsh-desktop-accent)" />
+                </marker>
+              </defs>
+              <g transform={`translate(${String(view.tx)} ${String(view.ty)}) scale(${String(view.scale)})`}>
+                {workflow.edges.map((edge) => {
+                  const from = workflow.nodes.find((node) => node.id === edge.from)
+                  const to = workflow.nodes.find((node) => node.id === edge.to)
+                  if (from === undefined || to === undefined) return null
+                  const path = edgePath(outputPort(positionOf(from)), inputPort(positionOf(to)))
+                  const active = run.nodes[edge.from]?.status === 'done' && run.nodes[edge.to]?.status === 'running'
+                  return (
+                    <g key={edge.id} className="dshDesktopWorkflowEdge" data-active={active || undefined}>
+                      <path className="dshDesktopWorkflowEdgeLine" d={path} />
+                      <path
+                        className="dshDesktopWorkflowEdgeHit"
+                        d={path}
+                        onClick={() => { workflowStore.disconnect(workflow.id, edge.id) }}
+                        onContextMenu={(event) => { event.preventDefault(); workflowStore.disconnect(workflow.id, edge.id) }}
+                      >
+                        <title>点击或右键删除这条连线</title>
+                      </path>
+                    </g>
+                  )
+                })}
+                {linkingFrom !== null && linkCursor !== null && (() => {
+                  const from = workflow.nodes.find((node) => node.id === linkingFrom)
+                  if (from === undefined) return null
+                  return <path className="dshDesktopWorkflowEdgeDraft" d={edgePath(outputPort(positionOf(from)), linkCursor)} />
+                })()}
+              </g>
             </svg>
 
-            {workflow.nodes.map((node) => {
-              const placed = positionOf(node)
-              return (
-                <NodeCard
-                  key={node.id}
-                  node={placed}
-                  state={run.nodes[node.id] ?? null}
-                  selected={node.id === selectedId}
-                  index={order.order.indexOf(node.id)}
-                  onDragStart={(event) => { startNodeDrag(event, placed) }}
-                  onLinkStart={(event) => { startLink(event, placed) }}
-                  onDelete={() => { workflowStore.removeNode(workflow.id, node.id); setSelectedId(null) }}
-                />
-              )
-            })}
-          </div>
+            <div
+              className="dshDesktopWorkflowLayer"
+              style={{ transform: `translate(${String(view.tx)}px, ${String(view.ty)}px) scale(${String(view.scale)})` }}
+            >
+              {workflow.nodes.map((node) => {
+                const placed = positionOf(node)
+                return (
+                  <NodeCard
+                    key={node.id}
+                    node={placed}
+                    state={run.nodes[node.id] ?? null}
+                    selected={node.id === selectedId}
+                    index={order.order.indexOf(node.id)}
+                    onDragStart={(event) => { startNodeDrag(event, placed) }}
+                    onOutputDown={(event) => {
+                      event.stopPropagation()
+                      event.preventDefault()
+                      beginLink(placed.id)
+                      setLinkDragging(true)
+                      linkMovedRef.current = false
+                      linkStartRef.current = { x: event.clientX, y: event.clientY }
+                      setLinkCursor(outputPort(positionOf(placed)))
+                      rootRef.current?.setPointerCapture(event.pointerId)
+                    }}
+                    onInputDown={(event) => { event.stopPropagation(); event.preventDefault(); if (linkingFrom !== null) finishLink(placed.id) }}
+                    onDelete={() => { workflowStore.removeNode(workflow.id, node.id); setSelectedId(null) }}
+                  />
+                )
+              })}
+            </div>
 
           {order.cyclic && (
             <p className="dshDesktopWorkflowWarn">检测到环形连线，运行前请断开循环。</p>
           )}
-          <p className="dshDesktopWorkflowTip">拖动空白处平移 · 滚轮缩放 · 双击空白处新增 Agent · 拖动节点右侧圆点连线</p>
+          {linkingFrom !== null && (
+            <p className="dshDesktopWorkflowLinking">连线模式：点击目标节点左侧圆点完成连接 · 点击空白处或右键取消</p>
+          )}
+          <p className="dshDesktopWorkflowTip">拖动空白处平移 · 滚轮缩放 · 双击空白处新增 Agent · 从节点「右侧圆点」拖到另一个节点松手即可连线（也可点一下右圆点再点目标）· 连线带箭头表示方向（上游→下游）· 右键连线可删除</p>
         </div>
 
         {selected !== null && (
@@ -390,11 +500,12 @@ interface NodeCardProps {
   /** Position in the resolved execution order; negative when unreachable. */
   index: number
   onDragStart: (event: React.PointerEvent<HTMLElement>) => void
-  onLinkStart: (event: React.PointerEvent<HTMLElement>) => void
+  onOutputDown: (event: React.PointerEvent<HTMLSpanElement>) => void
+  onInputDown: (event: React.PointerEvent<HTMLSpanElement>) => void
   onDelete: () => void
 }
 
-function NodeCard({ node, state, selected, index, onDragStart, onLinkStart, onDelete }: NodeCardProps): JSX.Element {
+function NodeCard({ node, state, selected, index, onDragStart, onOutputDown, onInputDown, onDelete }: NodeCardProps): JSX.Element {
   const status = state?.status ?? 'idle'
   const provider = findEndpoint(node.config.providerId)
   const preview = state?.error.length ? state.error : state?.output ?? ''
@@ -407,6 +518,7 @@ function NodeCard({ node, state, selected, index, onDragStart, onLinkStart, onDe
       data-selected={selected || undefined}
       style={{ left: node.x, top: node.y, width: NODE_WIDTH, height: nodeHeight(node.kind) }}
       onPointerDown={onDragStart}
+      onDragStart={(event) => { event.preventDefault() }}
     >
       <header className="dshDesktopWorkflowNodeHead">
         <span className="dshDesktopWorkflowNodeBadge">{NODE_KIND_LABELS[node.kind]}</span>
@@ -429,7 +541,7 @@ function NodeCard({ node, state, selected, index, onDragStart, onLinkStart, onDe
           ? (
             <>
               <span className="dshDesktopWorkflowNodeModel">
-                {provider?.label ?? '默认服务商'} · {node.config.model.length > 0 ? node.config.model : '未选模型'}
+                {provider?.label ?? '默认服务商'} · {node.config.model.length > 0 ? modelLabel(node.config.providerId, node.config.model) : '未选模型'}
               </span>
               <span className="dshDesktopWorkflowNodePrompt">{node.config.prompt.length > 0 ? node.config.prompt : '（未填写提示词，默认转发上游输出）'}</span>
             </>
@@ -448,15 +560,17 @@ function NodeCard({ node, state, selected, index, onDragStart, onLinkStart, onDe
           className="dshDesktopWorkflowPort"
           data-side="in"
           data-port-node={node.id}
-          title="输入端口：把上游节点的圆点拖到这里"
+          title="输入端口：连线模式下点击此节点即可连入"
+          onPointerDown={onInputDown}
         />
       )}
       {node.kind !== 'end' && (
         <span
           className="dshDesktopWorkflowPort"
           data-side="out"
-          title="输出端口：按住拖到下游节点的左侧圆点"
-          onPointerDown={onLinkStart}
+          data-port-node={node.id}
+          title="输出端口：点击拉出连线"
+          onPointerDown={onOutputDown}
         />
       )}
     </div>
@@ -478,6 +592,9 @@ function NodeInspector({ workflowId, node, state, onClose }: NodeInspectorProps)
     workflowStore.updateNodeConfig(workflowId, node.id, values)
   }, [node.id, workflowId])
 
+  const category = endpoint !== undefined ? modelCategory(endpoint.id, node.config.model) : 'chat'
+  const isGenerationModel = category === 'image' || category === 'video' || category === 'audio'
+
   return (
     <aside className="dshDesktopWorkflowInspector">
       <header className="dshDesktopWorkflowInspectorHead">
@@ -495,6 +612,15 @@ function NodeInspector({ workflowId, node, state, onClose }: NodeInspectorProps)
       </label>
 
       <p className="dshDesktopWorkflowInspectorKind">类型：{NODE_KIND_LABELS[node.kind]}</p>
+
+      {isGenerationModel && (
+        <p className="dshDesktopWorkflowInspectorGenWarn">
+          ⚠️ 当前选中的「{modelLabel(node.config.providerId, node.config.model)}」是
+          {category === 'image' ? '图像' : category === 'video' ? '视频' : '语音'}生成模型，
+          走的是专门的生成接口，<b>当前「对话节点」无法直接调用它</b>（运行时会被忽略或报错）。
+          生成节点将在后续版本支持；现在请改选「对话类」模型（不带【图像】【视频】前缀的）。
+        </p>
+      )}
 
       {node.kind === 'agent' && (
         <>
@@ -519,28 +645,34 @@ function NodeInspector({ workflowId, node, state, onClose }: NodeInspectorProps)
           )}
 
           <label className="dshDesktopSkinField">
-            模型（直接填模型名，想用什么填什么）
+            模型（chat 节点的 model 参数）
+            <select
+              className="dshDesktopSearchInput"
+              value={presetModels.some((model) => model.id === node.config.model) ? node.config.model : '__custom__'}
+              onChange={(event) => { if (event.target.value !== '__custom__') patch({ model: event.target.value }) }}
+            >
+              {presetModels.map((model) => (<option key={model.id} value={model.id}>{model.label}</option>))}
+              <option value="__custom__">✎ 手动填写其他模型…</option>
+            </select>
             <input
               className="dshDesktopSearchInput"
-              list={`wfModels-${node.id}`}
               value={node.config.model}
-              placeholder={endpoint?.models[0] ?? 'deepseek-chat'}
+              placeholder={endpoint?.models[0]?.id ?? 'deepseek-v4-flash'}
               onChange={(event) => { patch({ model: event.target.value }) }}
             />
-            <datalist id={`wfModels-${node.id}`}>
-              {presetModels.map((model) => (<option key={model} value={model} />))}
-            </datalist>
           </label>
+          <p className="dshDesktopWorkflowInspectorHint">先在下拉里选常用模型（显示中文名，提交的是真实 model ID，如 <code>qwen3.8-max</code>）；列表里没有的，可在下方手动填模型 ID。带【图像】【视频】前缀的是生成模型，对话节点暂不可用。</p>
 
           <label className="dshDesktopSkinField">
-            自定义 API 地址（留空用官方地址 {endpoint?.url || '（自定义服务商必填）'}）
+            自定义 API 地址（留空 = 用上方服务商的官方地址）
             <input
               className="dshDesktopSearchInput"
               value={node.config.baseUrl}
-              placeholder="https://your-gateway.com/v1"
+              placeholder={endpoint?.url || 'https://your-gateway.com/v1'}
               onChange={(event) => { patch({ baseUrl: event.target.value }) }}
             />
           </label>
+          <p className="dshDesktopWorkflowInspectorHint">只有当你用的是「非官方地址」的服务时才需要填。例如：本地 Ollama 填 <code>http://localhost:11434/v1</code>；第三方 OpenAI 兼容网关填它的地址。绝大部分情况直接留空即可。</p>
 
           <label className="dshDesktopSkinField">
             单独 API Key（留空则用「API 设置」里保存的密钥）
@@ -555,7 +687,7 @@ function NodeInspector({ workflowId, node, state, onClose }: NodeInspectorProps)
 
           <div className="dshDesktopWorkflowInspectorRow">
             <label className="dshDesktopSkinField">
-              温度
+              温度（0=最稳，1=有创意，常用 0.7）
               <input
                 className="dshDesktopSearchInput"
                 type="number"
@@ -578,6 +710,7 @@ function NodeInspector({ workflowId, node, state, onClose }: NodeInspectorProps)
               />
             </label>
           </div>
+          <p className="dshDesktopWorkflowInspectorHint">温度控制输出随机性：越低越确定、越稳重；越高越发散、越有创造力。日常用 0.7 左右；写代码/事实问答可降到 0.2；想要天马行空的文案可升到 1.0+。</p>
 
           <label className="dshDesktopSkinField">
             角色设定（system · 这个 Agent 的"身份"，可留空）
@@ -607,6 +740,9 @@ function NodeInspector({ workflowId, node, state, onClose }: NodeInspectorProps)
           ))}
         </div>
       )}
+      {node.kind === 'agent' && (
+        <p className="dshDesktopWorkflowInspectorHint">怎么填：写清楚「这个 Agent 负责什么」。可以点上方模板一键填充再改；留空则把上游节点的输出原样传给下一个节点。变量说明见下方。</p>
+      )}
       <label className="dshDesktopSkinField">
         {node.kind === 'agent' ? '提示词 / 工作内容' : '默认内容'}
         <textarea
@@ -617,7 +753,7 @@ function NodeInspector({ workflowId, node, state, onClose }: NodeInspectorProps)
         />
       </label>
       <p className="dshDesktopWorkflowInspectorHint">
-        可用变量：<code>{'{{input}}'}</code> 上游节点输出 · <code>{'{{origin}}'}</code> 本次运行输入 · <code>{'{{节点名}}'}</code> 任意已完成节点的输出（节点名即左上角显示的名字）
+        可用变量（运行时自动替换）：<code>{'{{input}}'}</code> = 上游节点传给你的内容；<code>{'{{origin}}'}</code> = 本次运行的初始输入；<code>{'{{节点名}}'}</code> = 引用某个已完成节点的输出（节点名就是卡片左上角的名字）。例如写「把 <code>{'{{input}}'}</code> 翻译成英文」。
       </p>
 
       {state !== null && (state.output.length > 0 || state.error.length > 0) && (

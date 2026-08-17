@@ -119,7 +119,7 @@ export async function callAgent(node: WorkflowNode, userText: string, signal?: A
   if (key.length === 0) {
     throw new Error(`节点「${node.name}」缺少 ${endpoint.label} 的 API Key，请在左栏「API 设置」中填写，或在节点里单独填写。`)
   }
-  const model = node.config.model.trim().length > 0 ? node.config.model.trim() : (endpoint.models[0] ?? '')
+  const model = node.config.model.trim().length > 0 ? node.config.model.trim() : (endpoint.models[0]?.id ?? '')
   if (model.length === 0) throw new Error(`节点「${node.name}」未选择模型。`)
 
   const temperature = Number.isFinite(node.config.temperature) ? node.config.temperature : 0.7

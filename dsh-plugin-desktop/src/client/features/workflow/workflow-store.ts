@@ -10,8 +10,9 @@
  * `useSyncExternalStore`; every mutation replaces the frozen snapshot.
  */
 
-import type { NodeRunStatus, Workflow, WorkflowEdge, WorkflowNode, WorkflowNodeConfig, WorkflowNodeKind } from './workflow-types.ts'
+import type { NodeRunStatus, Workflow, WorkflowEdge, WorkflowNode, WorkflowNodeConfig, WorkflowNodeKind, WorkflowSpec } from './workflow-types.ts'
 import { createId, createNode, createWorkflow, defaultNodeConfig } from './workflow-types.ts'
+import { DEFAULT_PROVIDER_ID, defaultModelFor, findEndpoint } from './model-catalog.ts'
 
 const STORAGE_KEY = 'dsh-desktop-workflows'
 const ACTIVE_KEY = 'dsh-desktop-workflow-active'
@@ -159,6 +160,79 @@ export class WorkflowStore {
     const workflow = createWorkflow(label.length > 0 ? label : this.nextName())
     this.publish({ workflows: [...this.snapshot.workflows, workflow], activeId: workflow.id })
     return workflow.id
+  }
+
+  /**
+   * Build a workflow from a structured spec (produced by the conversational
+   * generator) and select it. Nodes are laid out left-to-right; edges are wired
+   * by node name and de-duplicated. @returns the new workflow id.
+   */
+  createFromSpec(spec: WorkflowSpec): string {
+    const id = createId('wf')
+    const now = Date.now()
+    const nodes: WorkflowNode[] = []
+    const nameToId = new Map<string, string>()
+    let x = 80
+    const y = 160
+    for (const raw of spec.nodes) {
+      const kind: WorkflowNodeKind = raw.kind === 'start' || raw.kind === 'end' || raw.kind === 'agent' ? raw.kind : 'agent'
+      const name = raw.name.trim().length > 0
+        ? raw.name.trim()
+        : (kind === 'start' ? '输入' : kind === 'end' ? '输出' : `Agent ${String(nodes.length + 1)}`)
+      const node = createNode(kind, x, y, name)
+      if (kind === 'agent') {
+        const providerId = raw.providerId !== undefined && findEndpoint(raw.providerId) !== undefined ? raw.providerId : DEFAULT_PROVIDER_ID
+        const model = raw.model !== undefined && (findEndpoint(providerId)?.models.some((item) => item.id === raw.model) ?? false)
+          ? raw.model
+          : defaultModelFor(providerId)
+        const temperature = typeof raw.temperature === 'number' && Number.isFinite(raw.temperature)
+          ? Math.min(2, Math.max(0, raw.temperature))
+          : 0.7
+        const maxTokens = typeof raw.maxTokens === 'number' && raw.maxTokens >= 0 ? Math.round(raw.maxTokens) : 0
+        node.config = {
+          ...defaultNodeConfig(kind),
+          system: typeof raw.system === 'string' ? raw.system : '',
+          prompt: typeof raw.prompt === 'string' ? raw.prompt : '',
+          providerId,
+          model,
+          temperature,
+          maxTokens,
+        }
+      }
+      nodes.push(node)
+      nameToId.set(name, node.id)
+      x += 340
+    }
+
+    const edges: WorkflowEdge[] = []
+    const seen = new Set<string>()
+    const pushEdge = (fromName: string, toName: string): void => {
+      const fromId = nameToId.get(fromName)
+      const toId = nameToId.get(toName)
+      if (fromId === undefined || toId === undefined || fromId === toId) return
+      const key = `${fromId}->${toId}`
+      if (seen.has(key)) return
+      seen.add(key)
+      edges.push({ id: createId('e'), from: fromId, to: toId })
+    }
+
+    if (spec.edges.length > 0) {
+      for (const edge of spec.edges) pushEdge(edge.from, edge.to)
+    } else {
+      for (let index = 0; index < nodes.length - 1; index += 1) pushEdge(nodes[index]!.name, nodes[index + 1]!.name)
+    }
+
+    const workflow: Workflow = {
+      id,
+      name: spec.name.trim().length > 0 ? spec.name.trim() : 'AI 生成的工作流',
+      description: '',
+      nodes,
+      edges,
+      createdAt: now,
+      updatedAt: now,
+    }
+    this.publish({ workflows: [...this.snapshot.workflows, workflow], activeId: id })
+    return id
   }
 
   /** Delete a workflow and move the selection to a neighbour. */

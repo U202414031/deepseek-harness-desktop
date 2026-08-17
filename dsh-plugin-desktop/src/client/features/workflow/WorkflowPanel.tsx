@@ -1,5 +1,6 @@
 import { useCallback, useState, useSyncExternalStore } from 'react'
 import { runStore, workflowStore } from './workflow-store.ts'
+import { WorkflowGenerator } from './WorkflowGenerator.tsx'
 
 /** Format a timestamp as a short relative label. */
 function relativeTime(timestamp: number): string {
@@ -25,6 +26,7 @@ export function WorkflowPanel(): JSX.Element {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [draftName, setDraftName] = useState('')
   const [pendingDelete, setPendingDelete] = useState<string | null>(null)
+  const [generatorOpen, setGeneratorOpen] = useState(false)
 
   const startRename = useCallback((id: string, name: string) => {
     setEditingId(id)
@@ -50,7 +52,16 @@ export function WorkflowPanel(): JSX.Element {
         >
           ＋ 新建工作流
         </button>
+        <button
+          type="button"
+          className="dshDesktopAccentButton dshDesktopWorkflowGenerate"
+          onClick={() => { setGeneratorOpen(true) }}
+        >
+          ✨ 用描述生成
+        </button>
       </header>
+
+      <WorkflowGenerator open={generatorOpen} onClose={() => { setGeneratorOpen(false) }} />
 
       {workflows.length === 0 && (
         <p className="dshDesktopEmptyState">还没有工作流。点击「新建工作流」开始，系统会自动放好「输入 → Agent → 输出」三个节点。</p>

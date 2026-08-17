@@ -428,6 +428,26 @@ a.dshDesktopApiLink.dshDesktopSecondaryButton { color: var(--dsh-desktop-fg); }
 .dshDesktopWorkflowConfirm { font-size: 11px; padding: 4px 8px; }
 .dshDesktopWorkflowHint { margin: auto 16px 16px; font-size: 11px; line-height: 1.5; color: var(--dsh-desktop-fg-muted); }
 
+/* 「用描述生成」入口按钮 */
+.dshDesktopAccentButton { font-size: 12px; border-radius: 8px; padding: 6px 12px; cursor: pointer; border: 1px solid transparent; -webkit-app-region: no-drag; background: color-mix(in srgb, var(--dsh-desktop-accent) 14%, transparent); color: var(--dsh-desktop-accent); font-weight: 600; }
+.dshDesktopAccentButton:hover { background: color-mix(in srgb, var(--dsh-desktop-accent) 24%, transparent); }
+.dshDesktopWorkflowGenerate { align-self: flex-start; margin: 0 16px; }
+
+/* 对话式生成工作流弹窗 */
+.dshDesktopModalOverlay { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(0, 0, 0, 0.45); }
+.dshDesktopGeneratorModal { width: min(640px, 100%); max-height: 88vh; overflow: auto; display: flex; flex-direction: column; background: var(--dsh-desktop-surface); border: 1px solid var(--dsh-desktop-border); border-radius: 16px; box-shadow: 0 24px 70px rgba(0, 0, 0, 0.32); }
+.dshDesktopGeneratorHead { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--dsh-desktop-border); }
+.dshDesktopGeneratorHead h3 { margin: 0; font-size: 16px; }
+.dshDesktopGeneratorIntro { margin: 0; padding: 14px 20px 0; font-size: 13px; line-height: 1.6; color: var(--dsh-desktop-fg-muted); }
+.dshDesktopGeneratorInput { margin: 14px 20px 0; width: calc(100% - 40px); box-sizing: border-box; min-height: 96px; resize: vertical; padding: 12px; border-radius: 10px; border: 1px solid var(--dsh-desktop-border); background: var(--dsh-desktop-bg); color: var(--dsh-desktop-fg); font: inherit; line-height: 1.6; }
+.dshDesktopGeneratorInput:focus { outline: none; border-color: var(--dsh-desktop-accent); }
+.dshDesktopGeneratorExamples { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 20px 0; }
+.dshDesktopGeneratorRow { display: flex; gap: 12px; padding: 14px 20px 0; }
+.dshDesktopGeneratorRow .dshDesktopSkinField { flex: 1 1 0; }
+.dshDesktopWorkflowInspectorHint { margin: 10px 20px 0; }
+.dshDesktopGeneratorSummary { margin: 14px 20px 0; padding: 12px 14px; border-radius: 10px; font-size: 13px; line-height: 1.6; background: color-mix(in srgb, var(--dsh-desktop-accent) 12%, var(--dsh-desktop-surface)); border: 1px solid color-mix(in srgb, var(--dsh-desktop-accent) 40%, transparent); }
+.dshDesktopGeneratorFoot { display: flex; justify-content: flex-end; gap: 10px; padding: 18px 20px; }
+
 /* ---- Workflow feature: main canvas ---- */
 .dshDesktopWorkflowMain { grid-column: 2; grid-row: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--dsh-desktop-bg); }
 .dshDesktopFrame[data-desktop-platform="darwin"] .dshDesktopWorkflowMain,
@@ -446,16 +466,18 @@ a.dshDesktopApiLink.dshDesktopSecondaryButton { color: var(--dsh-desktop-fg); }
 .dshDesktopWorkflowZoomValue { font-size: 12px; color: var(--dsh-desktop-fg-muted); min-width: 40px; text-align: center; }
 .dshDesktopWorkflowBody { position: relative; flex: 1 1 auto; min-height: 0; display: flex; }
 .dshDesktopWorkflowCanvas { position: relative; flex: 1 1 auto; min-width: 0; overflow: hidden; cursor: grab; touch-action: none; background-color: var(--dsh-desktop-bg); background-image: radial-gradient(circle, var(--dsh-desktop-border) 1px, transparent 1px); background-size: 22px 22px; }
+.dshDesktopWorkflowCanvas { position: relative; flex: 1 1 auto; min-width: 0; overflow: hidden; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; background-color: var(--dsh-desktop-bg); background-image: radial-gradient(circle, var(--dsh-desktop-border) 1px, transparent 1px); background-size: 22px 22px; }
 .dshDesktopWorkflowCanvas[data-linking] { cursor: crosshair; }
 .dshDesktopWorkflowLayer { position: absolute; top: 0; left: 0; transform-origin: 0 0; }
-.dshDesktopWorkflowEdges { position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
-.dshDesktopWorkflowEdgeLine { fill: none; stroke: var(--dsh-desktop-border); stroke-width: 2; }
-.dshDesktopWorkflowEdge[data-active] .dshDesktopWorkflowEdgeLine { stroke: var(--dsh-desktop-accent); }
+.dshDesktopWorkflowEdges { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.dshDesktopWorkflowEdgeLine { fill: none; stroke: var(--dsh-desktop-border); stroke-width: 2; marker-end: url(#dshWorkflowArrow); }
+.dshDesktopWorkflowEdge[data-active] .dshDesktopWorkflowEdgeLine { stroke: var(--dsh-desktop-accent); marker-end: url(#dshWorkflowArrowActive); }
 .dshDesktopWorkflowEdgeHit { fill: none; stroke: transparent; stroke-width: 14; pointer-events: stroke; cursor: pointer; }
 .dshDesktopWorkflowEdgeHit:hover + .dshDesktopWorkflowEdgeLine,
 .dshDesktopWorkflowEdge:hover .dshDesktopWorkflowEdgeLine { stroke: var(--dsh-desktop-accent); }
-.dshDesktopWorkflowEdgeDraft { fill: none; stroke: var(--dsh-desktop-accent); stroke-width: 2; stroke-dasharray: 5 4; }
-.dshDesktopWorkflowNode { position: absolute; box-sizing: border-box; display: flex; flex-direction: column; border: 1px solid var(--dsh-desktop-border); border-radius: 12px; background: var(--dsh-desktop-surface); box-shadow: 0 6px 18px rgba(0,0,0,0.08); overflow: visible; cursor: move; touch-action: none; }
+.dshDesktopWorkflowEdgeHit:hover { stroke: var(--dsh-desktop-accent); opacity: 0.4; }
+.dshDesktopWorkflowEdgeDraft { fill: none; stroke: var(--dsh-desktop-accent); stroke-width: 2.5; stroke-dasharray: 6 5; marker-end: url(#dshWorkflowArrowActive); }
+.dshDesktopWorkflowNode { position: absolute; box-sizing: border-box; display: flex; flex-direction: column; border: 1px solid var(--dsh-desktop-border); border-radius: 12px; background: var(--dsh-desktop-surface); box-shadow: 0 6px 18px rgba(0,0,0,0.08); overflow: visible; cursor: move; touch-action: none; user-select: none; -webkit-user-select: none; }
 .dshDesktopWorkflowNode[data-selected] { border-color: var(--dsh-desktop-accent); box-shadow: 0 0 0 2px var(--dsh-desktop-accent); }
 .dshDesktopWorkflowNode[data-kind="start"] { background: color-mix(in srgb, var(--dsh-desktop-accent) 12%, var(--dsh-desktop-surface)); }
 .dshDesktopWorkflowNode[data-kind="end"] { background: color-mix(in srgb, var(--dsh-desktop-fg-muted) 14%, var(--dsh-desktop-surface)); }
@@ -474,31 +496,55 @@ a.dshDesktopApiLink.dshDesktopSecondaryButton { color: var(--dsh-desktop-fg); }
 .dshDesktopWorkflowNodePrompt { font-size: 11px; color: var(--dsh-desktop-fg-muted); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; }
 .dshDesktopWorkflowNodeResult { font-size: 10px; color: var(--dsh-desktop-fg-muted); background: var(--dsh-desktop-code-bg); border-radius: 6px; padding: 3px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dshDesktopWorkflowNodeResult[data-error] { color: #d6455a; background: rgba(214,69,90,0.1); }
-.dshDesktopWorkflowPort { position: absolute; width: 16px; height: 16px; border-radius: 999px; background: var(--dsh-desktop-accent); border: 2px solid var(--dsh-desktop-surface); top: 50%; transform: translateY(-50%); z-index: 2; cursor: crosshair; box-shadow: 0 0 0 3px color-mix(in srgb, var(--dsh-desktop-accent) 35%, transparent); transition: transform 0.12s ease; }
-.dshDesktopWorkflowPort::before { content: ""; position: absolute; inset: -10px; border-radius: 999px; }
-.dshDesktopWorkflowPort[data-side="in"] { left: -9px; background: var(--dsh-desktop-surface); border-color: var(--dsh-desktop-accent); cursor: pointer; }
-.dshDesktopWorkflowPort[data-side="out"] { right: -9px; }
-.dshDesktopWorkflowPort[data-side="out"]:hover { transform: translateY(-50%) scale(1.2); }
+.dshDesktopWorkflowPort { position: absolute; width: 20px; height: 20px; border-radius: 999px; background: var(--dsh-desktop-accent); border: 2px solid var(--dsh-desktop-surface); top: 50%; transform: translateY(-50%); z-index: 4; cursor: pointer; pointer-events: auto; touch-action: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--dsh-desktop-accent) 35%, transparent); transition: transform 0.12s ease, box-shadow 0.12s ease; }
+/* Invisible, generous hit area so the small dot is easy to grab (covers ~48px). */
+.dshDesktopWorkflowPort::before { content: ""; position: absolute; inset: -14px; border-radius: 999px; }
+.dshDesktopWorkflowPort[data-side="in"] { left: -11px; background: var(--dsh-desktop-surface); border-color: var(--dsh-desktop-accent); }
+.dshDesktopWorkflowPort[data-side="out"] { right: -11px; }
+.dshDesktopWorkflowPort[data-side="in"]:hover,
+.dshDesktopWorkflowPort[data-side="out"]:hover { transform: translateY(-50%) scale(1.35); box-shadow: 0 0 0 6px color-mix(in srgb, var(--dsh-desktop-accent) 50%, transparent); }
+/* While a link is being drawn, make every potential endpoint obvious and easy to hit. */
+.dshDesktopWorkflowCanvas[data-linking] .dshDesktopWorkflowPort { animation: dshDesktopPulse 1.1s ease-in-out infinite; }
+.dshDesktopWorkflowCanvas[data-linking] .dshDesktopWorkflowPort[data-side="in"] { width: 24px; height: 24px; box-shadow: 0 0 0 6px color-mix(in srgb, var(--dsh-desktop-accent) 55%, transparent); }
+.dshDesktopWorkflowCanvas[data-linking] .dshDesktopWorkflowPort[data-side="in"]:hover { transform: translateY(-50%) scale(1.5); }
 .dshDesktopWorkflowWarn { position: absolute; left: 12px; bottom: 12px; margin: 0; padding: 6px 12px; font-size: 12px; color: #b3870a; background: rgba(179,135,10,0.12); border: 1px solid rgba(179,135,10,0.4); border-radius: 8px; }
 .dshDesktopWorkflowTip { position: absolute; right: 12px; bottom: 12px; margin: 0; font-size: 11px; color: var(--dsh-desktop-fg-muted); background: var(--dsh-desktop-surface); border: 1px solid var(--dsh-desktop-border); border-radius: 8px; padding: 5px 10px; }
-.dshDesktopWorkflowInspector { flex: 0 0 320px; max-width: 360px; border-left: 1px solid var(--dsh-desktop-border); background: var(--dsh-desktop-surface); display: flex; flex-direction: column; gap: 12px; padding: 14px 16px; overflow-y: auto; }
-.dshDesktopWorkflowInspectorHead { display: flex; align-items: center; justify-content: space-between; }
-.dshDesktopWorkflowInspectorHead h3 { margin: 0; font-size: 14px; color: var(--dsh-desktop-fg); }
-.dshDesktopWorkflowInspectorKind { margin: 0; font-size: 12px; color: var(--dsh-desktop-fg-muted); }
-.dshDesktopWorkflowInspectorRow { display: flex; gap: 10px; }
-.dshDesktopWorkflowInspectorRow .dshDesktopSkinField { flex: 1 1 0; }
-.dshDesktopWorkflowInspectorHint { margin: 0; font-size: 11px; color: var(--dsh-desktop-fg-muted); line-height: 1.5; }
-.dshDesktopWorkflowInspectorHint code { background: var(--dsh-desktop-code-bg); padding: 1px 4px; border-radius: 4px; font-size: 10px; }
-.dshDesktopWorkflowInspectorResult { display: flex; flex-direction: column; gap: 4px; }
-.dshDesktopWorkflowInspectorResultHead { font-size: 12px; font-weight: 600; color: var(--dsh-desktop-fg); }
-.dshDesktopWorkflowInspectorResult pre { margin: 0; max-height: 160px; overflow: auto; white-space: pre-wrap; font-size: 11px; line-height: 1.5; background: var(--dsh-desktop-code-bg); border: 1px solid var(--dsh-desktop-border); border-radius: 8px; padding: 8px; color: var(--dsh-desktop-fg); }
-.dshDesktopWorkflowInspectorResult pre[data-error] { color: #d6455a; border-color: rgba(214,69,90,0.4); }
-.dshDesktopWorkflowInspectorDelete { align-self: flex-start; }
-.dshDesktopWorkflowInspectorStep { margin: 4px 0 0; font-size: 12px; font-weight: 600; color: var(--dsh-desktop-accent); }
-.dshDesktopWorkflowTemplateRow { display: flex; flex-wrap: wrap; gap: 6px; }
-.dshDesktopWorkflowTemplateChip { font-size: 11px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--dsh-desktop-border); background: var(--dsh-desktop-surface-2); color: var(--dsh-desktop-fg); cursor: pointer; transition: background 0.12s ease, border-color 0.12s ease; }
-.dshDesktopWorkflowTemplateChip:hover { background: color-mix(in srgb, var(--dsh-desktop-accent) 14%, var(--dsh-desktop-surface-2)); border-color: var(--dsh-desktop-accent); }
-.dshDesktopWorkflowTextArea { min-height: 80px; }
+  .dshDesktopWorkflowInspector { flex: 0 0 340px; max-width: 384px; border-left: 1px solid var(--dsh-desktop-border); background: var(--dsh-desktop-surface); display: flex; flex-direction: column; gap: 14px; padding: 16px 18px; overflow-y: auto; }
+  .dshDesktopWorkflowInspectorHead { display: flex; align-items: center; justify-content: space-between; padding-bottom: 12px; border-bottom: 1px solid var(--dsh-desktop-border); }
+  .dshDesktopWorkflowInspectorHead h3 { margin: 0; font-size: 15px; font-weight: 700; color: var(--dsh-desktop-fg); }
+  .dshDesktopWorkflowInspectorKind { display: inline-block; margin: 0; font-size: 11px; color: var(--dsh-desktop-fg-muted); background: var(--dsh-desktop-surface-2); border: 1px solid var(--dsh-desktop-border); padding: 2px 9px; border-radius: 999px; }
+  .dshDesktopWorkflowInspectorStep { margin: 8px 0 0; padding-top: 14px; border-top: 1px solid var(--dsh-desktop-border); font-size: 12px; font-weight: 700; color: var(--dsh-desktop-accent); letter-spacing: 0.02em; }
+  .dshDesktopWorkflowInspector .dshDesktopSkinField { gap: 6px; font-size: 12px; font-weight: 600; }
+  .dshDesktopWorkflowInspector .dshDesktopSearchInput,
+  .dshDesktopWorkflowInspector .dshDesktopSkinTextArea {
+    width: 100%; box-sizing: border-box; padding: 9px 11px;
+    border: 1px solid var(--dsh-desktop-border); border-radius: 10px;
+    background: var(--dsh-desktop-bg); color: var(--dsh-desktop-fg);
+    font-size: 13px; font-family: inherit; line-height: 1.5;
+    transition: border-color 0.12s ease, box-shadow 0.12s ease;
+  }
+  .dshDesktopWorkflowInspector .dshDesktopSearchInput:focus,
+  .dshDesktopWorkflowInspector .dshDesktopSkinTextArea:focus {
+    outline: none; border-color: var(--dsh-desktop-accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--dsh-desktop-accent) 22%, transparent);
+  }
+  .dshDesktopWorkflowInspector .dshDesktopSkinTextArea { resize: vertical; }
+  .dshDesktopWorkflowInspectorRow { display: flex; gap: 10px; }
+  .dshDesktopWorkflowInspectorRow .dshDesktopSkinField { flex: 1 1 0; }
+  .dshDesktopWorkflowInspectorHint { margin: 0; padding: 9px 11px; font-size: 11px; line-height: 1.55; color: var(--dsh-desktop-fg-muted); background: var(--dsh-desktop-surface-2); border: 1px solid var(--dsh-desktop-border); border-radius: 10px; }
+  .dshDesktopWorkflowInspectorHint code { background: var(--dsh-desktop-code-bg); padding: 1px 5px; border-radius: 5px; font-size: 10px; color: var(--dsh-desktop-accent); }
+  .dshDesktopWorkflowInspectorGenWarn { margin: 0; padding: 10px 12px; font-size: 11px; line-height: 1.55; color: #b3870a; background: rgba(179,135,10,0.12); border: 1px solid rgba(179,135,10,0.4); border-radius: 10px; }
+  .dshDesktopWorkflowInspectorGenWarn b { color: #986d06; }
+  .dshDesktopWorkflowInspectorResult { display: flex; flex-direction: column; gap: 6px; }
+  .dshDesktopWorkflowInspectorResultHead { font-size: 12px; font-weight: 600; color: var(--dsh-desktop-fg); }
+  .dshDesktopWorkflowInspectorResult pre { margin: 0; max-height: 180px; overflow: auto; white-space: pre-wrap; font-size: 11px; line-height: 1.5; background: var(--dsh-desktop-code-bg); border: 1px solid var(--dsh-desktop-border); border-radius: 10px; padding: 10px; color: var(--dsh-desktop-fg); }
+  .dshDesktopWorkflowInspectorResult pre[data-error] { color: #d6455a; border-color: rgba(214,69,90,0.4); }
+  .dshDesktopWorkflowInspectorDelete { align-self: flex-start; }
+  .dshDesktopWorkflowTemplateRow { display: flex; flex-wrap: wrap; gap: 8px; }
+  .dshDesktopWorkflowTemplateChip { font-size: 12px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--dsh-desktop-border); background: var(--dsh-desktop-surface-2); color: var(--dsh-desktop-fg); cursor: pointer; transition: background 0.12s ease, border-color 0.12s ease, transform 0.08s ease; }
+  .dshDesktopWorkflowTemplateChip:hover { background: color-mix(in srgb, var(--dsh-desktop-accent) 14%, var(--dsh-desktop-surface-2)); border-color: var(--dsh-desktop-accent); }
+  .dshDesktopWorkflowTemplateChip:active { transform: scale(0.96); }
+  .dshDesktopWorkflowTextArea { min-height: 96px; }
 .dshDesktopWorkflowRunBar { flex: 0 0 auto; display: flex; flex-direction: column; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--dsh-desktop-border); background: var(--dsh-desktop-surface); }
 .dshDesktopWorkflowInput { box-sizing: border-box; width: 100%; resize: vertical; padding: 6px 8px; border: 1px solid var(--dsh-desktop-border); border-radius: 8px; background: var(--dsh-desktop-bg); color: var(--dsh-desktop-fg); font-size: 12px; font-family: inherit; }
 .dshDesktopWorkflowRunActions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }

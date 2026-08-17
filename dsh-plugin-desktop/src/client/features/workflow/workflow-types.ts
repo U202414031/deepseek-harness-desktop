@@ -94,7 +94,7 @@ export function defaultNodeConfig(kind: WorkflowNodeKind): WorkflowNodeConfig {
     system: kind === 'agent' ? '你是一个专业的助手，请严格按要求完成任务。' : '',
     prompt: kind === 'agent' ? '{{input}}' : '',
     providerId: kind === 'agent' ? 'deepseek' : '',
-    model: kind === 'agent' ? 'deepseek-chat' : '',
+    model: kind === 'agent' ? 'deepseek-v4-flash' : '',
     baseUrl: '',
     apiKey: '',
     temperature: 0.7,
@@ -163,4 +163,41 @@ export function inputPort(node: WorkflowNode): { x: number; y: number } {
 export function edgePath(from: { x: number; y: number }, to: { x: number; y: number }): string {
   const dx = Math.max(40, Math.abs(to.x - from.x) * 0.5)
   return `M ${String(from.x)} ${String(from.y)} C ${String(from.x + dx)} ${String(from.y)}, ${String(to.x - dx)} ${String(to.y)}, ${String(to.x)} ${String(to.y)}`
+}
+
+/**
+ * Structured description produced by the conversational workflow generator
+ * (natural-language → graph). Names are used to wire edges, so every edge's
+ * `from`/`to` must match a node `name`.
+ */
+export interface WorkflowSpecNode {
+  /** Node role; only `start` / `agent` / `end` are valid. */
+  kind: WorkflowNodeKind
+  /** Display name; also the edge wiring key and the `{{name}}` template variable. */
+  name: string
+  /** Provider id (matches `model-catalog` ids). Defaults when omitted/invalid. */
+  providerId?: string
+  /** Model id sent to the provider. Defaults to the provider's first model. */
+  model?: string
+  /** System (role) prompt for agent nodes. */
+  system?: string
+  /** User-message template for agent nodes; supports `{{input}}` / `{{name}}`. */
+  prompt?: string
+  /** Sampling temperature, 0–2. */
+  temperature?: number
+  /** Response cap; 0 means "provider default". */
+  maxTokens?: number
+}
+
+/** A directed connection keyed by node names. */
+export interface WorkflowSpecEdge {
+  from: string
+  to: string
+}
+
+/** A whole workflow the generator hands back for `workflowStore.createFromSpec`. */
+export interface WorkflowSpec {
+  name: string
+  nodes: WorkflowSpecNode[]
+  edges: WorkflowSpecEdge[]
 }
