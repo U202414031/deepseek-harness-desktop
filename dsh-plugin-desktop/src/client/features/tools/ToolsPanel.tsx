@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 /**
  * Desktop-owned "外部工具 / IM 网关" panel (left column).
@@ -128,6 +128,24 @@ export function ToolsPanel(): JSX.Element {
   const [error, setError] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(null)
   const [editor, setEditor] = useState<EditorState | null>(null)
+  const busyTimerRef = useRef<number | null>(null)
+
+  // busy 兜底：无论什么原因（网络挂起、host 无响应等），60 秒后强制解除，
+  // 绝不让界面按钮永久禁用（表现为"点不动/无法输入"）。
+  const setBusySafe = (v: boolean): void => {
+    if (busyTimerRef.current !== null) {
+      window.clearTimeout(busyTimerRef.current)
+      busyTimerRef.current = null
+    }
+    setBusy(v)
+    if (v) {
+      busyTimerRef.current = window.setTimeout(() => {
+        busyTimerRef.current = null
+        setBusy(false)
+        setError((prev) => (prev ? prev : '操作超时（60 秒未完成），请重试'))
+      }, 60_000)
+    }
+  }
 
   const refresh = (): void => {
     setLoading(true)
@@ -154,7 +172,7 @@ export function ToolsPanel(): JSX.Element {
   }, [])
 
   const saveConfig = (next: ChannelConfig[]): void => {
-    setBusy(true)
+    setBusySafe(true)
     setError(null)
     apiFetch('/desktop/im-gateway/config', {
       method: 'POST',
@@ -178,7 +196,7 @@ export function ToolsPanel(): JSX.Element {
       .catch((cause: unknown) => {
         setError(cause instanceof Error ? cause.message : '保存配置失败')
       })
-      .finally(() => setBusy(false))
+      .finally(() => setBusySafe(false))
   }
 
   const onToggleEnable = (id: string): void => {
@@ -192,7 +210,9 @@ export function ToolsPanel(): JSX.Element {
   }
 
   const openAdd = (type: ChannelType): void => {
-    setEditor({ mode: 'add', type, name: CHANNEL_META[type].label, enabled: true, config: {} })
+    // 新增通道默认不自动启用：由用户填好凭证后自行勾选「启用」再连接，
+    // 避免一添加就尝试连接（凭证没填全时只会报错）。
+    setEditor({ mode: 'add', type, name: CHANNEL_META[type].label, enabled: false, config: {} })
   }
 
   const openEdit = (ch: ChannelConfig): void => {
@@ -220,7 +240,7 @@ export function ToolsPanel(): JSX.Element {
   }
 
   const onReload = (): void => {
-    setBusy(true)
+    setBusySafe(true)
     setError(null)
     apiFetch('/desktop/im-gateway/reload', { method: 'POST' })
       .then(() => {
@@ -228,7 +248,7 @@ export function ToolsPanel(): JSX.Element {
         window.setTimeout(refresh, 1000)
       })
       .catch((cause: unknown) => setError(cause instanceof Error ? cause.message : '重连失败'))
-      .finally(() => setBusy(false))
+      .finally(() => setBusySafe(false))
   }
 
   const metaOf = (type: ChannelType): ChannelMeta =>
