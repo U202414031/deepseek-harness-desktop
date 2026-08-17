@@ -2,6 +2,7 @@
 
 import { app } from 'electron'
 import type { Context } from '@deepseek-ai/cordis'
+import { writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
@@ -232,6 +233,30 @@ async function start(): Promise<void> {
       )
     }
   } catch (cause) {
+    const parts: string[] = []
+    const seen = new Set<unknown>()
+    const walk = (e: unknown): void => {
+      if (e === null || e === undefined || seen.has(e)) return
+      seen.add(e)
+      if (e instanceof AggregateError && Array.isArray(e.errors)) {
+        parts.push(`\n>>> AggregateError with ${e.errors.length} sub-error(s):`)
+        for (const sub of e.errors) walk(sub)
+      } else if (e instanceof Error) {
+        const c = (e as { cause?: unknown }).cause
+        parts.push(`\n>>> ERROR: ${e.message}\n${e.stack ?? ''}`)
+        if (c !== undefined) walk(c)
+      } else {
+        parts.push(`\n>>> NON-ERROR CAUSE: ${String(e)}`)
+      }
+    }
+    walk(cause)
+    const diag = parts.join('\n')
+    try {
+      writeFileSync(join(fileURLToPath(new URL('.', import.meta.url)), 'load-diag.log'), `=== PLUGIN LOAD DIAGNOSTIC ===${diag}\n`, 'utf8')
+    } catch {
+      /* ignore */
+    }
+    process.stderr.write(`${BIN_NAME}: === PLUGIN LOAD DIAGNOSTIC ===${diag}\n`)
     process.stderr.write(`${BIN_NAME}: ${cause instanceof Error ? cause.stack ?? cause.message : String(cause)}\n`)
     let exitCode = 1
     if (profileStartup !== undefined && profileStatePath !== undefined) {

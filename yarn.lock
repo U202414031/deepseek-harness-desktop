@@ -6750,6 +6750,7 @@ __metadata:
     tsdown: "npm:0.22.2"
     typescript: "npm:6.0.3"
     vitest: "npm:4.1.8"
+    ws: "npm:^8.21.3"
     yaml: "npm:^2.9.0"
   peerDependencies:
     electron: 43.4.0
@@ -10883,7 +10884,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ws@npm:^8.18.0, ws@npm:^8.21.0":
+"ws@npm:^8.18.0, ws@npm:^8.21.0, ws@npm:^8.21.3":
   version: 8.21.3
   resolution: "ws@npm:8.21.3"
   peerDependencies:

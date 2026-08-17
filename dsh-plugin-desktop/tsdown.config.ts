@@ -34,6 +34,7 @@ export default defineConfig([
     dts: false,
     clean: false,
     sourcemap: true,
+    external: ['ws'],
   },
   {
     name: `${PACKAGE_NAME}/bin`,

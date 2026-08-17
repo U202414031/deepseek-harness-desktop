@@ -13,6 +13,7 @@ import { settingsNamespace } from '@deepseek-ai/dsh-settings'
 import { installMarketplaceRoutes } from './marketplace-host.ts'
 import { installHttpProxy } from './http-proxy.ts'
 import { installSkinsRoutes } from './skins-host.ts'
+import { installImGateway } from './im-gateway/index.ts'
 import type { DesktopShellMode } from './runtime.ts'
 import type {} from './runtime.ts'
 
@@ -147,6 +148,18 @@ export function apply(ctx: Context, config: Config): void {
   // loopback server because the sandboxed renderer rejects file:// URLs; skin
   // definitions reference them as same-origin `/desktop/skins/...` paths.
   ctx.effect(() => installSkinsRoutes(ctx), 'dsh-plugin-desktop: skins asset routes')
+  // In-app IM gateway: bridges phone-side QQ / 飞书 / 微信 to the local DeepSeek
+  // agent so a user can query status and dispatch tasks from their phone.
+  // Guarded so a failure here can never take down the whole plugin tree.
+  ctx.effect(() => {
+    try {
+      return installImGateway(ctx)
+    } catch (e) {
+      ctx.logger.error('dsh-plugin-desktop: IM 网关初始化失败，已跳过（不影响其他功能）：')
+      ctx.logger.error(e)
+      return () => {}
+    }
+  }, 'dsh-plugin-desktop: im gateway')
   if (config.mode === 'advanced') {
     ctx.on('settings/updated', (namespace, next) => {
       if (namespace !== UI_THEME_SETTINGS_NAMESPACE) return
