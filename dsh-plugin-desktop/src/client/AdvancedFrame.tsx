@@ -4,7 +4,8 @@ import type {} from './contracts.ts'
 import { WorkflowCanvas } from './features/workflow/WorkflowCanvas.tsx'
 import type { DesktopClientPlatform } from './environment.ts'
 import {
-  ARTIFACTS_RAIL, computeDesktopColumns, DesktopLayoutState, MACOS_SIDEBAR_COLLAPSED,
+  ARTIFACTS_RAIL, computeDesktopColumns, DesktopLayoutState, IDE_RAIL,
+  MACOS_SIDEBAR_COLLAPSED,
   SIDEBAR_AUTO_COLLAPSE, SIDEBAR_COLLAPSED, SIDEBAR_DEFAULT,
 } from './layout-state.ts'
 
@@ -18,7 +19,7 @@ export interface AdvancedFrameInjected {
 
 /** Full advanced root slot props. */
 export type AdvancedFrameProps = PropsRuntime<'root'>
-  & PropsRenderSlots<'sidebar' | 'conversation' | 'details' | 'sidebar.marketplace' | 'sidebar.skins' | 'sidebar.api' | 'sidebar.tools' | 'sidebar.workflow' | 'desktop.model-monitor' | 'artifacts' | 'shell.overlay'>
+  & PropsRenderSlots<'sidebar' | 'conversation' | 'details' | 'sidebar.marketplace' | 'sidebar.skins' | 'sidebar.api' | 'sidebar.tools' | 'sidebar.workflow' | 'desktop.model-monitor' | 'artifacts' | 'ide' | 'shell.overlay'>
   & AdvancedFrameInjected
 
 /** Desktop-owned transparent frame around the unchanged product surfaces. */
@@ -64,6 +65,8 @@ export function AdvancedFrame({ layout, platform, renderSlot, useSessions }: Adv
     platform === 'darwin' ? MACOS_SIDEBAR_COLLAPSED : SIDEBAR_COLLAPSED,
     panels.artifacts,
     panels.artifactsExpanded,
+    panels.ide,
+    panels.ideExpanded,
   )
 
   return (
@@ -72,7 +75,7 @@ export function AdvancedFrame({ layout, platform, renderSlot, useSessions }: Adv
       className="dshDesktopFrame"
       data-desktop-platform={platform}
       data-sidebar-collapsed={collapsed || undefined}
-      style={{ gridTemplateColumns: `${columns.sidebar}px minmax(0, 1fr) ${columns.details}px ${columns.artifacts}px` }}
+      style={{ gridTemplateColumns: `${columns.sidebar}px minmax(0, 1fr) ${columns.details}px ${columns.artifacts}px ${columns.ide}px` }}
     >
       {platform === 'darwin' && <div className="dshDesktopMacCaptionRow" aria-hidden="true" />}
       {platform === 'win32' && <div className="dshDesktopWindowsCaptionRow" aria-hidden="true" />}
@@ -143,6 +146,17 @@ export function AdvancedFrame({ layout, platform, renderSlot, useSessions }: Adv
             onClick={() => { layout.setLeftPanel('workflow') }}
           >
             流程
+          </button>
+          <button
+            type="button"
+            className="dshDesktopRailButton"
+            data-active={panels.ide > 0 || undefined}
+            title="集成开发环境"
+            aria-label="集成开发环境"
+            aria-pressed={panels.ide > 0}
+            onClick={() => { layout.toggleIde() }}
+          >
+            IDE
           </button>
           <div className="dshDesktopRailDivider" aria-hidden="true" />
           <button
@@ -226,6 +240,51 @@ export function AdvancedFrame({ layout, platform, renderSlot, useSessions }: Adv
           </button>
         )}
       </aside>
+      <aside className="dshDesktopIdeSurface" data-open={panels.ide > 0 || undefined}>
+        {panels.ide > 0 ? (
+          <>
+            <header className="dshDesktopFeatureHeader dshDesktopIdeHeader">
+              <h2 className="dshDesktopFeatureTitle">集成开发环境</h2>
+              <div className="dshDesktopArtifactsHeader__buttons">
+                <button
+                  type="button"
+                  className="dshDesktopIconButton"
+                  title={panels.ideExpanded ? '还原面板宽度' : '放大面板'}
+                  aria-label={panels.ideExpanded ? '还原面板宽度' : '放大面板'}
+                  aria-pressed={panels.ideExpanded}
+                  onClick={() => { layout.toggleIdeExpanded() }}
+                >
+                  {panels.ideExpanded ? (
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 8h8" /><path d="M4 6l2 2-2 2" /><path d="M12 6l-2 2 2 2" /></svg>
+                  ) : (
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2 8h4M4 6l-2 2 2 2" /><path d="M14 8h-4M12 6l2 2-2 2" /></svg>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  className="dshDesktopIconButton"
+                  title="收起 IDE 面板"
+                  aria-label="收起 IDE 面板"
+                  onClick={() => { layout.closeIde() }}
+                >
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 4l4 4-4 4" /></svg>
+                </button>
+              </div>
+            </header>
+            <div className="dshDesktopIdePanel">{renderSlot('ide', {})}</div>
+          </>
+        ) : (
+          <button
+            type="button"
+            className="dshDesktopArtifactsReopen"
+            title="展开集成开发环境"
+            aria-label="展开集成开发环境"
+            onClick={() => { layout.openIde() }}
+          >
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10 4l-4 4 4 4" /></svg>
+          </button>
+        )}
+      </aside>
       <div className="dshDesktopOverlay" data-shell-overlay>
         {renderSlot('shell.overlay', {})}
       </div>
@@ -253,11 +312,19 @@ export function AdvancedFrame({ layout, platform, renderSlot, useSessions }: Adv
           onResize={(width) => { layout.setArtifacts(width) }}
         />
       )}
+      {columns.ide > IDE_RAIL && !panels.ideExpanded && (
+        <ResizeHandle
+          side="ide"
+          left={viewport - columns.ide}
+          size={columns.ide}
+          onResize={(width) => { layout.setIde(width) }}
+        />
+      )}
     </div>
   )
 }
 
-function ResizeHandle(props: { side: 'sidebar' | 'details' | 'artifacts'; left: number; size: number; onResize: (width: number) => void }) {
+function ResizeHandle(props: { side: 'sidebar' | 'details' | 'artifacts' | 'ide'; left: number; size: number; onResize: (width: number) => void }) {
   const origin = useRef(0)
   const base = useRef(0)
   const onPointerDown = useCallback((event: React.PointerEvent<HTMLDivElement>) => {

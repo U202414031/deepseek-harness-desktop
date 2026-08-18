@@ -1,0 +1,54 @@
+{
+  "name": "dsh-ide-bridge",
+  "displayName": "DSH IDE Bridge",
+  "description": "将编辑器选区转发给本地 DSH agent（解释/修改），并在修改后显示内联 diff。",
+  "version": "0.1.0",
+  "publisher": "deepseek-harness",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Other"],
+  "main": "./out/extension.js",
+  "activationEvents": ["onStartupFinished"],
+  "contributes": {
+    "commands": [
+      {
+        "command": "dshIdeBridge.askExplain",
+        "title": "DSH：让 AI 解释选中的代码"
+      },
+      {
+        "command": "dshIdeBridge.askModify",
+        "title": "DSH：让 AI 修改选中的代码"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "dshIdeBridge.askExplain",
+        "key": "ctrl+alt+e",
+        "when": "editorHasSelection"
+      },
+      {
+        "command": "dshIdeBridge.askModify",
+        "key": "ctrl+alt+m",
+        "when": "editorHasSelection"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "dshIdeBridge.askExplain",
+          "when": "editorHasSelection",
+          "group": "dsh@1"
+        },
+        {
+          "command": "dshIdeBridge.askModify",
+          "when": "editorHasSelection",
+          "group": "dsh@2"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  }
+}

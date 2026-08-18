@@ -15,6 +15,7 @@ import { WorkflowPanel } from './features/workflow/WorkflowPanel.tsx'
 import { ModelMonitor } from './features/api/ModelMonitor.tsx'
 import { TurnUsageFooter } from './features/api/turn-usage-footer.tsx'
 import { ArtifactsPanel } from './features/artifacts/ArtifactsPanel.tsx'
+import { IdePanel } from './features/ide/IdePanel.tsx'
 import { applySkin, getSkin } from './features/skins/skin-service.ts'
 import { startWhaleAmbient } from './features/skins/whale-ambient.ts'
 
@@ -78,6 +79,7 @@ export function applyAdvancedShell(ctx: ClientContext, environment: DesktopClien
       'sidebar.workflow': { kind: 'single', scope: 'root' },
       'desktop.model-monitor': { kind: 'single', scope: 'session-maybe' },
       'artifacts': { kind: 'single', scope: 'session' },
+      'ide': { kind: 'single', scope: 'root' },
       'shell.overlay': { kind: 'list', scope: 'root' },
     },
     inject: () => ({ layout: desktopLayout, platform: environment.platform }),
@@ -92,6 +94,7 @@ export function applyAdvancedShell(ctx: ClientContext, environment: DesktopClien
   ctx.effect(() => ctx.slots.register({ name: 'sidebar.workflow' }, WorkflowPanel), 'desktop: workflow surface')
   ctx.effect(() => ctx.slots.register({ name: 'desktop.model-monitor' }, ModelMonitor), 'desktop: model monitor')
   ctx.effect(() => ctx.slots.register({ name: 'artifacts' }, ArtifactsPanel), 'desktop: artifacts surface')
+  ctx.effect(() => ctx.slots.register({ name: 'ide' }, IdePanel), 'desktop: ide surface')
 
   // Inline per-reply usage footer: contributes into the upstream turn-tail
   // chain slot (declared by dsh-client-ui-conversation), so each finished

@@ -638,6 +638,16 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
       const step = action === 'in' ? 1 : -1
       window.webContents.setZoomLevel(clampedZoomLevel(window.webContents.getZoomLevel() + step))
     }
+    const isLoopbackOrigin = (candidate: string | undefined): boolean => {
+      if (candidate === undefined) return false
+      try {
+        const parsed = new URL(candidate)
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false
+        return parsed.hostname === '127.0.0.1' || parsed.hostname === '::1' || parsed.hostname === '[::1]'
+      } catch {
+        return false
+      }
+    }
     const navigate = (event: Electron.Event<{ url: string }>): void => {
       let targetOrigin: string | undefined
       try {
@@ -645,7 +655,10 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
       } catch {
         targetOrigin = undefined
       }
-      if (targetOrigin !== origin) event.preventDefault()
+      // Allow the embedded code-server IDE (loopback) to load and redirect; it is
+      // our own local process, not an external site, so it is safe to frame.
+      if (targetOrigin === origin || isLoopbackOrigin(targetOrigin)) return
+      event.preventDefault()
     }
 
     app.on('activate', show)

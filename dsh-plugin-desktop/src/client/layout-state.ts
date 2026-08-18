@@ -8,6 +8,10 @@ export interface DesktopLayoutSnapshot {
   artifacts: number
   /** Whether the artifacts/code panel is currently in its enlarged width. */
   artifactsExpanded: boolean
+  /** Preferred embedded-IDE panel width; zero means closed. */
+  ide: number
+  /** Whether the embedded-IDE panel is currently in its enlarged width. */
+  ideExpanded: boolean
   /** Whether the current viewport is below the automatic-collapse breakpoint. */
   narrow: boolean
   /** Manual narrow-screen override that temporarily expands the rail. */
@@ -29,6 +33,8 @@ export interface DesktopColumns {
   details: number
   /** Rendered artifacts/code panel width. */
   artifacts: number
+  /** Rendered embedded-IDE panel width. */
+  ide: number
 }
 
 /** Compatibility-mode compact rail used by the upstream Windows sidebar. */
@@ -47,16 +53,24 @@ export const ARTIFACTS_MIN = 300
 export const ARTIFACTS_MAX = 560
 /** Reserved width of the always-present right-edge control rail, mirroring the sidebar rail. */
 export const ARTIFACTS_RAIL = 56
+export const IDE_DEFAULT = 420
+export const IDE_MIN = 320
+export const IDE_MAX = 720
+/** Reserved width of the always-present right-edge control rail for the IDE panel. */
+export const IDE_RAIL = 56
 export const CENTER_MIN = 640
 
 /**
- * Resolve four desktop columns without allowing details or artifacts to squeeze
- * the conversation below its floor.
+ * Resolve five desktop columns without allowing details, artifacts, or the IDE
+ * panel to squeeze the conversation below its floor.
  * @param viewport - available frame width.
  * @param sidebar - sidebar preference, where zero selects the compact rail.
  * @param details - details preference, where zero closes the panel.
  * @param collapsedWidth - rail width used when the sidebar preference is zero.
  * @param artifacts - artifacts/code panel preference, where zero closes it.
+ * @param artifactsExpanded - whether the artifacts panel is enlarged to full width.
+ * @param ide - embedded-IDE panel preference, where zero closes it.
+ * @param ideExpanded - whether the IDE panel is enlarged to full width.
  * @returns rendered column widths.
  */
 export function computeDesktopColumns(
@@ -66,6 +80,8 @@ export function computeDesktopColumns(
   collapsedWidth: number = SIDEBAR_COLLAPSED,
   artifacts: number = 0,
   artifactsExpanded: boolean = false,
+  ide: number = 0,
+  ideExpanded: boolean = false,
 ): DesktopColumns {
   const sidebarWidth = sidebar === 0 ? collapsedWidth : clamp(sidebar, SIDEBAR_MIN, SIDEBAR_MAX)
   const preferredDetails = details === 0 ? 0 : clamp(details, DETAILS_MIN, DETAILS_MAX)
@@ -74,39 +90,47 @@ export function computeDesktopColumns(
   // mirroring the left sidebar's persistent collapsed rail. A closed panel shows
   // only the rail; an open panel shows its content.
   const preferredArtifacts = artifactsOpen ? clamp(artifacts, ARTIFACTS_MIN, ARTIFACTS_MAX) : ARTIFACTS_RAIL
-  // Enlarged state: let the right panel take the whole window (minus the left
-  // sidebar and the optional details column), collapsing the conversation to a
-  // sliver — matching WorkBuddy's maximize action for the right sidebar.
-  if (artifactsOpen && artifactsExpanded) {
-    const expanded = Math.max(ARTIFACTS_MIN, viewport - sidebarWidth - preferredDetails)
+  const ideOpen = ide > 0
+  const preferredIde = ideOpen ? clamp(ide, IDE_MIN, IDE_MAX) : IDE_RAIL
+
+  // Enlarged state: one right panel takes the whole window (minus the left
+  // sidebar, the optional details column, and the other panel's rail), collapsing
+  // the conversation to a sliver — matching the maximize action for right panels.
+  if ((artifactsOpen && artifactsExpanded) || (ideOpen && ideExpanded)) {
+    const expandIde = ideOpen && ideExpanded
+    const otherRail = expandIde ? preferredArtifacts : preferredIde
+    const expanded = Math.max(IDE_MIN, viewport - sidebarWidth - preferredDetails - otherRail)
     return {
       sidebar: sidebarWidth,
-      center: Math.max(0, viewport - sidebarWidth - preferredDetails - expanded),
+      center: Math.max(0, viewport - sidebarWidth - preferredDetails - otherRail - expanded),
       details: preferredDetails,
-      artifacts: expanded,
+      artifacts: expandIde ? preferredArtifacts : expanded,
+      ide: expandIde ? expanded : preferredIde,
     }
   }
-  // Fits with the requested artifacts width: render the right docked panel.
-  if (sidebarWidth + preferredDetails + preferredArtifacts + CENTER_MIN <= viewport) {
+  // Fits with the requested widths: render both right docked panels.
+  if (sidebarWidth + preferredDetails + preferredArtifacts + preferredIde + CENTER_MIN <= viewport) {
     return {
       sidebar: sidebarWidth,
-      center: viewport - sidebarWidth - preferredDetails - preferredArtifacts,
+      center: viewport - sidebarWidth - preferredDetails - preferredArtifacts - preferredIde,
       details: preferredDetails,
       artifacts: preferredArtifacts,
+      ide: preferredIde,
     }
   }
-  // The panel is explicitly open: keep it open at its minimum and let the
-  // conversation shrink below its nominal floor rather than dropping the panel.
-  if (artifactsOpen) {
-    const minCenter = Math.max(420, viewport - sidebarWidth - preferredDetails - ARTIFACTS_MIN)
-    if (minCenter >= 420) {
-      return { sidebar: sidebarWidth, center: minCenter, details: preferredDetails, artifacts: ARTIFACTS_MIN }
-    }
+  // A right panel is explicitly open but everything no longer fits: keep each
+  // open panel at its minimum and let the conversation shrink below its floor.
+  const minArtifacts = artifactsOpen ? ARTIFACTS_MIN : ARTIFACTS_RAIL
+  const minIde = ideOpen ? IDE_MIN : IDE_RAIL
+  const minCenter = Math.max(360, viewport - sidebarWidth - preferredDetails - minArtifacts - minIde)
+  if (minCenter >= 360) {
+    return { sidebar: sidebarWidth, center: minCenter, details: preferredDetails, artifacts: minArtifacts, ide: minIde }
   }
-  // Cannot open the content; keep the rail visible so the reopen control works.
-  const railOnly = ARTIFACTS_RAIL
-  const centerForRail = Math.max(360, viewport - sidebarWidth - preferredDetails - railOnly)
-  return { sidebar: sidebarWidth, center: centerForRail, details: preferredDetails, artifacts: railOnly }
+  // Cannot open both content panels; keep their rails visible so reopen works.
+  const railArtifacts = ARTIFACTS_RAIL
+  const railIde = IDE_RAIL
+  const centerForRails = Math.max(360, viewport - sidebarWidth - preferredDetails - railArtifacts - railIde)
+  return { sidebar: sidebarWidth, center: centerForRails, details: preferredDetails, artifacts: railArtifacts, ide: railIde }
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -120,6 +144,8 @@ export class DesktopLayoutState {
     details: 0,
     artifacts: ARTIFACTS_DEFAULT,
     artifactsExpanded: false,
+    ide: 0,
+    ideExpanded: false,
     narrow: false,
     narrowExpanded: false,
     leftPanel: 'chat',
@@ -192,6 +218,30 @@ export class DesktopLayoutState {
     })
   }
 
+  /** Open the embedded-IDE panel at its default width. */
+  openIde(): void {
+    if (this.snapshot.ide === 0) this.publish({ ...this.snapshot, ide: IDE_DEFAULT, ideExpanded: false })
+  }
+
+  /** Close the embedded-IDE panel while keeping its slot mounted. */
+  closeIde(): void {
+    if (this.snapshot.ide !== 0) this.publish({ ...this.snapshot, ide: 0, ideExpanded: false })
+  }
+
+  /** Toggle the embedded-IDE panel open/closed. */
+  toggleIde(): void {
+    if (this.snapshot.ide === 0) this.openIde()
+    else this.closeIde()
+  }
+
+  /** Toggle the embedded-IDE panel between its docked and full-window widths. */
+  toggleIdeExpanded(): void {
+    this.publish({
+      ...this.snapshot,
+      ideExpanded: !this.snapshot.ideExpanded,
+    })
+  }
+
   /** @param width - requested sidebar width from a resize gesture. */
   setSidebar(width: number): void {
     this.publish({ ...this.snapshot, sidebar: clamp(width, SIDEBAR_MIN, SIDEBAR_MAX) })
@@ -205,6 +255,11 @@ export class DesktopLayoutState {
   /** @param width - requested artifacts/code panel width from a resize gesture. */
   setArtifacts(width: number): void {
     this.publish({ ...this.snapshot, artifacts: clamp(width, ARTIFACTS_MIN, ARTIFACTS_MAX) })
+  }
+
+  /** @param width - requested embedded-IDE panel width from a resize gesture. */
+  setIde(width: number): void {
+    this.publish({ ...this.snapshot, ide: clamp(width, IDE_MIN, IDE_MAX) })
   }
 
   private publish(next: DesktopLayoutSnapshot): void {

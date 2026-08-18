@@ -30,6 +30,7 @@ body[data-dsh-desktop-mode="advanced"] { margin: 0; background: transparent !imp
 .dshDesktopFrame[data-desktop-platform="win32"] .dshDesktopConversationSurface,
 .dshDesktopFrame[data-desktop-platform="win32"] .dshDesktopDetailsSurface { grid-row: 2; }
 .dshDesktopFrame[data-desktop-platform="win32"] .dshDesktopArtifactsSurface { grid-row: 2; }
+.dshDesktopFrame[data-desktop-platform="win32"] .dshDesktopIdeSurface { grid-row: 2; }
 .dshDesktopWindowsCaptionRow { position: relative; grid-column: 2 / -1; grid-row: 1; min-width: 0; background: var(--dsw-alias-bg-base); }
 .dshDesktopWindowsCaptionRow::before { content: ""; position: absolute; inset: 0 ${WINDOWS_CAPTION_CONTROLS_WIDTH}px 0 0; user-select: none; -webkit-app-region: drag; }
 .dshDesktopFrame[data-sidebar-collapsed] { transition: grid-template-columns var(--ds-transition-duration-slow) var(--ds-ease-in-out); }
@@ -128,6 +129,7 @@ html:has([aria-modal="true"]) .dshDesktopSidebarSurface::before { -webkit-app-re
 :root[data-skin] .dshDesktopConversationSurface,
 :root[data-skin] .dshDesktopDetailsSurface,
 :root[data-skin] .dshDesktopArtifactsSurface,
+:root[data-skin] .dshDesktopIdeSurface,
 :root[data-skin] .dshDesktopMacCaptionRow,
 :root[data-skin] .dshDesktopWindowsCaptionRow { background: var(--dsh-desktop-bg); color: var(--dsh-desktop-fg); border-color: var(--dsh-desktop-border); }
 :root[data-skin] .dshDesktopSidebarRail { background: var(--dsh-desktop-surface); }
@@ -273,7 +275,9 @@ html:has([aria-modal="true"]) .dshDesktopSidebarSurface::before { -webkit-app-re
 
 /* ---- Artifacts / code right panel ---- */
 .dshDesktopFrame[data-desktop-platform="darwin"] .dshDesktopArtifactsSurface { grid-row: 1 / -1; }
+.dshDesktopFrame[data-desktop-platform="darwin"] .dshDesktopIdeSurface { grid-row: 1 / -1; }
 .dshDesktopArtifactsSurface { grid-column: 4; grid-row: 1; min-width: 0; min-height: 0; overflow: hidden; background: var(--dsh-desktop-surface); border-left: 1px solid var(--dsh-desktop-border); box-shadow: var(--dsh-desktop-sidebar-shadow, -8px 0 24px rgba(0, 0, 0, 0.12)); display: flex; flex-direction: column; }
+.dshDesktopIdeSurface { grid-column: 5; grid-row: 1; min-width: 0; min-height: 0; overflow: hidden; background: var(--dsh-desktop-surface); border-left: 1px solid var(--dsh-desktop-border); box-shadow: var(--dsh-desktop-sidebar-shadow, -8px 0 24px rgba(0, 0, 0, 0.12)); display: flex; flex-direction: column; }
 .dshDesktopArtifactsPanel { flex: 1 1 auto; min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
 .dshDesktopArtifactsTabs { display: flex; gap: 6px; padding: 10px 12px; }
 .dshDesktopArtifactsTab { font-size: 12px; padding: 6px 12px; border: 1px solid var(--dsh-desktop-border); border-radius: 999px; background: var(--dsh-desktop-surface); color: var(--dsh-desktop-fg-muted); cursor: pointer; -webkit-app-region: no-drag; }
@@ -357,6 +361,25 @@ a.dshDesktopApiLink.dshDesktopSecondaryButton { color: var(--dsh-desktop-fg); }
 .dshDesktopArtifactsReopen { display: inline-flex; align-items: center; justify-content: center; width: 100%; height: 100%; border: 0; background: transparent; color: var(--dsh-desktop-fg-muted); cursor: pointer; -webkit-app-region: no-drag; }
 .dshDesktopArtifactsReopen:hover { background: var(--dsh-desktop-surface-2); color: var(--dsh-desktop-fg); }
 .dshDesktopArtifactsReopen svg { width: 18px; height: 18px; display: block; }
+
+/* ---- Embedded IDE panel (VS Code linkage) ---- */
+.dshDesktopIde { display: flex; flex-direction: column; height: 100%; min-height: 0; color: var(--dsh-desktop-fg); }
+.dshDesktopIdeHeader { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.dshDesktopIdePanel { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+.dshDesktopIdeBoot { flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 24px; text-align: center; }
+.dshDesktopIdeBootTitle { margin: 0; font-size: 14px; font-weight: 600; color: var(--dsh-desktop-fg); }
+.dshDesktopIdeOpenButton { margin-top: 4px; padding: 10px 18px; font-size: 13px; font-weight: 600; color: var(--dsh-desktop-fg); background: var(--dsh-desktop-surface-2); border: 1px solid var(--dsh-desktop-border); border-radius: 8px; cursor: pointer; -webkit-app-region: no-drag; }
+.dshDesktopIdeOpenButton:hover:not(:disabled) { background: var(--dsh-desktop-code-bg); border-color: var(--dsh-desktop-border-strong, var(--dsh-desktop-border)); }
+.dshDesktopIdeOpenButton:disabled { opacity: 0.6; cursor: default; }
+.dshDesktopIdeHint { margin: 0; font-size: 12px; line-height: 1.6; color: var(--dsh-desktop-fg-muted); max-width: 34ch; }
+.dshDesktopIdeHint code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11px; background: var(--dsh-desktop-code-bg); padding: 1px 4px; border-radius: 4px; }
+.dshDesktopIdeDirs { flex: 0 0 auto; border-top: 1px solid var(--dsh-desktop-border); padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; max-height: 42%; overflow: auto; background: var(--dsh-desktop-surface); }
+.dshDesktopIdeDirsTitle { margin: 0; font-size: 13px; font-weight: 600; }
+.dshDesktopIdeDirList { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.dshDesktopIdeDirItem { display: flex; align-items: center; gap: 6px; }
+.dshDesktopIdeDirPath { flex: 1 1 auto; min-width: 0; font-size: 11px; color: var(--dsh-desktop-fg-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dshDesktopIdeAddRow { display: flex; gap: 6px; }
+.dshDesktopIdeAddRow .dshDesktopSearchInput { flex: 1 1 auto; }
 .dshDesktopEmptyState { color: var(--dsh-desktop-fg-muted); font-size: 13px; padding: 8px; }
 .dshDesktopCodeList, .dshDesktopArtifactList { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .dshDesktopCodeCard, .dshDesktopArtifactCard { border: 1px solid var(--dsh-desktop-border); border-radius: 10px; overflow: hidden; background: var(--dsh-desktop-surface); }

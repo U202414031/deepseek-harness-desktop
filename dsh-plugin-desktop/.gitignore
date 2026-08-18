@@ -4,3 +4,5 @@ node_modules/
 # IM 网关登录态/二维码（含 QQ 扫码登录数据，落在工作区、不应提交）
 dsh-im-gateway-data/
 .im-gateway-data/
+# code-server 桥接扩展的编译产物（打包/开发前手动 tsc 编译）
+ide-extension/out/

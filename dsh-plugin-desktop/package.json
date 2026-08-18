@@ -258,10 +258,14 @@
     "electronFuses": {
       "runAsNode": true
     },
-    "directories": {
-      "output": "dist",
-      "buildResources": "build"
-    },
+  "directories": {
+    "output": "dist",
+    "buildResources": "build"
+  },
+  "extraResources": [
+    { "from": "tools/code-server", "to": "code-server" },
+    { "from": "ide-extension", "to": "code-server/ide-extension" }
+  ],
     "files": [
       "build/app-icon.png",
       "build/app-icon-mac.png",

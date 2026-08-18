@@ -24,6 +24,14 @@ export interface DesktopLayoutService {
   toggleArtifacts(): void
   /** Toggle the artifacts/code panel between default and enlarged width. */
   toggleArtifactsExpanded(): void
+  /** Open the embedded-IDE panel. */
+  openIde(): void
+  /** Close the embedded-IDE panel. */
+  closeIde(): void
+  /** Toggle the embedded-IDE panel open/closed. */
+  toggleIde(): void
+  /** Toggle the embedded-IDE panel between default and enlarged width. */
+  toggleIdeExpanded(): void
 }
 
 /** Left-surface selection rendered inside the desktop-owned sidebar column. */
@@ -82,6 +90,8 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     'desktop.model-monitor': { kind: 'single'; scope: 'session-maybe'; owner: Record<never, never> }
     /** Desktop-owned artifacts/code panel rendered in the right column. */
     'artifacts': { kind: 'single'; scope: 'session'; owner: Record<never, never> }
+    /** Desktop-owned embedded-IDE (code-server) panel rendered in the right column. */
+    'ide': { kind: 'single'; scope: 'root'; owner: Record<never, never> }
     /** Frame-wide additive overlays. */
     'shell.overlay': { kind: 'list'; scope: 'root' }
     /** Upstream turn-tail chain (declared by dsh-client-ui-conversation); the
