@@ -59,6 +59,10 @@ export async function proxyFetch(input: string | URL, init?: RequestInit): Promi
     try {
       return await fetch(PROXY_PATH, proxyInit)
     } catch (cause) {
+      // 调用方已主动取消（例如竞速中"先成功者取消其他源"）：立即透传
+      // 原始 AbortError，不再重试、也不回退直连（都是徒劳，只会产生
+      // "signal is aborted without reason" 这类误导性信息）。
+      if (init?.signal?.aborted === true) throw cause
       lastProxyError = cause
     }
   }

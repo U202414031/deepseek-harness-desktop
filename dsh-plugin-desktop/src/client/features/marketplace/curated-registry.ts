@@ -232,13 +232,16 @@ async function githubSearch(query: string, page: number, signal?: AbortSignal): 
       rememberWorkingBase(success.base)
       return success.items
     }
-    // 全部失败：优先展示最有诊断价值的错误（限流 403/429 提示「稍后重试」，
-    // 比笼统的「超时」更有用），否则取最后一条错误。
+    // 全部失败：优先展示最有诊断价值的错误。被竞速取消的请求（AbortError /
+    // "signal is aborted"）不算真实失败，先过滤掉；然后在剩余错误中优先
+    // 限流（403/429 提示「稍后重试」），其次取最后一条。
     const errors = results
       .map((result) => result.error)
       .filter((error): error is Error => error instanceof Error)
-    const rateLimit = errors.find((error) => /403|429|限流/.test(error.message))
-    const lastError = rateLimit ?? errors.pop() ?? new Error('GitHub 请求失败')
+    const realErrors = errors.filter((error) => !(error.name === 'AbortError' || /aborted/i.test(error.message)))
+    const candidates = realErrors.length > 0 ? realErrors : errors
+    const rateLimit = candidates.find((error) => /403|429|限流/.test(error.message))
+    const lastError = rateLimit ?? candidates.pop() ?? new Error('GitHub 请求失败')
     throw lastError
   } finally {
     if (signal !== null && signal !== undefined) signal.removeEventListener('abort', onCallerAbort)
