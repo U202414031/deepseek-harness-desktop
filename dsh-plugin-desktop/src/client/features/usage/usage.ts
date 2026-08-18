@@ -192,50 +192,87 @@ export interface UsageSummary {
  * (matched by provider/model) are counted, so the panel can attribute usage to
  * the model currently in use; when `spec` is null, every reply with usage is
  * included.
+ *
+ * Reads the authoritative Chat view (`assistant-step` nodes) first and falls
+ * back to the legacy top-level `nodes` projection when the Chat view is empty.
  */
 export function collectUsage(snapshot: ConversationSnapshot | undefined, spec: ProviderSpec | null): {
   entries: UsageEntry[]
   summary: UsageSummary
 } {
-  const entries: UsageEntry[] = []
-  let promptTokens = 0
-  let completionTokens = 0
-  let totalTokens = 0
-  let count = 0
-  let cost: CostInfo | null = null
-  for (const node of snapshot?.nodes ?? []) {
-    if (node.kind !== 'assistant') continue
-    const provider = node.provenance?.provider ?? node.requestConfig?.provider
-    const model = node.provenance?.model ?? node.requestConfig?.model
-    if (spec !== null && !spec.match(provider, model)) continue
-    const parsed = parseUsage(node.usage)
+  const acc: { entries: UsageEntry[]; prompt: number; completion: number; total: number; count: number; cost: CostInfo | null } = {
+    entries: [], prompt: 0, completion: 0, total: 0, count: 0, cost: null,
+  }
+  const addEntry = (entry: UsageEntry): void => {
+    acc.entries.push(entry)
+    acc.prompt += entry.usage.promptTokens
+    acc.completion += entry.usage.completionTokens
+    acc.total += entry.usage.totalTokens
+    acc.count += 1
+    if (entry.cost !== null) {
+      if (acc.cost === null) {
+        acc.cost = { amount: 0, currency: entry.cost.currency, estimated: entry.cost.estimated }
+      } else if (acc.cost.currency !== entry.cost.currency) {
+        // Mixed currencies across replies: keep the first, mark as an estimate.
+        acc.cost.estimated = true
+      }
+      acc.cost.amount += entry.cost.amount
+    }
+  }
+
+  // 权威源：Chat 视图的 assistant-step 节点（data.usage 在回复 finalize 后出现）。
+  const chat = snapshot?.chat
+  let fromChat = false
+  for (const key of chat?.order ?? []) {
+    const node = chat?.nodes.get(key)
+    if (node?.kind !== 'assistant-step') continue
+    fromChat = true
+    const data = (node.data ?? {}) as AssistantStepChatData
+    const parsed = parseUsage(data.usage)
     if (parsed === null) continue
+    const provider = data.finalNode?.provenance?.provider ?? data.finalNode?.requestConfig?.provider
+    const model = data.finalNode?.provenance?.model ?? data.finalNode?.requestConfig?.model
+    if (spec !== null && !spec.match(provider, model)) continue
     const entryCost = estimateCost(parsed, spec, model)
-    entries.push({
-      seq: node.seq,
-      turn: node.turn,
-      step: node.step,
-      time: node.time,
+    addEntry({
+      seq: data.finalNode?.seq ?? node.anchorSeq,
+      turn: data.turn ?? 0,
+      step: data.step ?? 0,
+      time: data.time ?? 0,
       provider,
       model,
       usage: parsed,
       cost: entryCost,
     })
-    promptTokens += parsed.promptTokens
-    completionTokens += parsed.completionTokens
-    totalTokens += parsed.totalTokens
-    count += 1
-    if (entryCost !== null) {
-      if (cost === null) {
-        cost = { amount: 0, currency: entryCost.currency, estimated: entryCost.estimated }
-      } else if (cost.currency !== entryCost.currency) {
-        // Mixed currencies across replies: keep the first, mark as an estimate.
-        cost.estimated = true
-      }
-      cost.amount += entryCost.amount
+  }
+
+  // 兜底：legacy 顶层 nodes 投影。
+  if (!fromChat) {
+    for (const node of snapshot?.nodes ?? []) {
+      if (node.kind !== 'assistant') continue
+      const provider = node.provenance?.provider ?? node.requestConfig?.provider
+      const model = node.provenance?.model ?? node.requestConfig?.model
+      if (spec !== null && !spec.match(provider, model)) continue
+      const parsed = parseUsage(node.usage)
+      if (parsed === null) continue
+      const entryCost = estimateCost(parsed, spec, model)
+      addEntry({
+        seq: node.seq,
+        turn: node.turn,
+        step: node.step,
+        time: node.time,
+        provider,
+        model,
+        usage: parsed,
+        cost: entryCost,
+      })
     }
   }
-  return { entries, summary: { promptTokens, completionTokens, totalTokens, count, cost } }
+
+  return {
+    entries: acc.entries,
+    summary: { promptTokens: acc.prompt, completionTokens: acc.completion, totalTokens: acc.total, count: acc.count, cost: acc.cost },
+  }
 }
 
 /** Backward-compatible alias for the cumulative summary only. */

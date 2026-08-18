@@ -239,9 +239,32 @@ export function detectCurrentModel(snapshot: ConversationSnapshot | undefined): 
   model: string | undefined
   spec: ProviderSpec | null
 } {
-  const nodes = [...(snapshot?.nodes ?? [])].reverse()
-  const last = nodes.find((n) => n.kind === 'assistant') as AssistantLike | undefined
-  const provider = last?.provenance?.provider ?? last?.requestConfig?.provider
-  const model = last?.provenance?.model ?? last?.requestConfig?.model
+  let provider: string | undefined
+  let model: string | undefined
+
+  // 权威源：Chat 视图。每条 finalize 的回复对应一个 `assistant-step` 节点，
+  // 其 data.finalNode 携带 provenance/requestConfig。按 order 顺序遍历，最后
+  // 留下的即最新一条（ChatNodeStore.values() 不保证顺序，须走 order）。
+  const chat = snapshot?.chat
+  for (const key of chat?.order ?? []) {
+    const node = chat?.nodes.get(key)
+    if (node?.kind !== 'assistant-step') continue
+    const finalNode = (node.data as { finalNode?: AssistantLike } | undefined)?.finalNode
+    if (finalNode === undefined) continue
+    const p = finalNode.provenance?.provider ?? finalNode.requestConfig?.provider
+    const m = finalNode.provenance?.model ?? finalNode.requestConfig?.model
+    if (p !== undefined || m !== undefined) {
+      provider = p
+      model = m
+    }
+  }
+
+  // 兜底：legacy 顶层 nodes（部分运行环境只填充该兼容投影）。
+  if (provider === undefined && model === undefined) {
+    const nodes = [...(snapshot?.nodes ?? [])].reverse()
+    const last = nodes.find((n) => n.kind === 'assistant') as AssistantLike | undefined
+    provider = last?.provenance?.provider ?? last?.requestConfig?.provider
+    model = last?.provenance?.model ?? last?.requestConfig?.model
+  }
   return { provider, model, spec: detectProvider(provider, model) }
 }

@@ -69,15 +69,16 @@ function ApiSection(props: {
   )
 }
 
-/** 顶部常显的 DeepSeek 高峰 / 空闲时段提示条（每 30 秒刷新）。 */
+/** 顶部常显的 DeepSeek 高峰 / 空闲时段提示条（每 10 秒刷新）。 */
 function PeakHourBanner(): JSX.Element {
   const [now, setNow] = useState(() => new Date())
   useEffect(() => {
-    const timer = window.setInterval(() => setNow(new Date()), 30_000)
+    const timer = window.setInterval(() => setNow(new Date()), 10_000)
     return () => window.clearInterval(timer)
   }, [])
   const info = getPeakInfo(now)
-  const time = now.toLocaleTimeString('zh-CN', { hour12: false })
+  // 显示到分钟即可（刷新周期内秒不变化，避免"秒不动"的观感）。
+  const time = now.toLocaleTimeString('zh-CN', { hour12: false, hour: '2-digit', minute: '2-digit' })
   return (
     <div className={info.peak ? 'dshDesktopPeakBanner dshDesktopPeakBanner-peak' : 'dshDesktopPeakBanner dshDesktopPeakBanner-off'}>
       <div className="dshDesktopPeakBannerRow">
