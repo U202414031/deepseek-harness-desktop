@@ -134,7 +134,7 @@ export function MarketplacePanel(): JSX.Element {
     [allPlugins, trimmed, githubPlugins],
   )
   const plugins = queryHits
-  const isSearchEmpty = trimmed.length > 0 && queryHits.length === 0
+  const isSearchEmpty = trimmed.length > 0 && !searching && queryHits.length === 0
   // 查询词变化时重置分页，从第一页开始展示。
   useEffect(() => { setVisibleCount(MARKETPLACE_PAGE) }, [trimmed])
 
@@ -207,8 +207,11 @@ export function MarketplacePanel(): JSX.Element {
       </header>
 
       {hint !== null && <p className="dshDesktopMarketplaceHintNote">{hint}</p>}
+      {searching && (
+        <p className="dshDesktopMarketplaceHintNote">正在 GitHub 上搜索「{trimmed}」…</p>
+      )}
       {isSearchEmpty && (
-        <p className="dshDesktopMarketplaceHintNote">未找到与「{trimmed}」精确相关的插件，已为你展示全部 dsh 社区插件。可换一个更具体的关键词试试。</p>
+        <p className="dshDesktopMarketplaceHintNote">未找到与「{trimmed}」相关的 GitHub 仓库，可换一个更具体的关键词试试。</p>
       )}
       {error !== null && <p className="dshDesktopMarketplaceNote">{error}</p>}
       {lastLog !== null && (

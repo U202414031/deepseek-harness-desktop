@@ -150,17 +150,30 @@ function buildSearchUrl(base: string, query: string, page: number): string {
   return `${base}/search/repositories?q=${q}&sort=stars&order=desc&per_page=${String(GITHUB_PER_PAGE)}&page=${String(page)}`
 }
 
-/** Wrap `parent` with a hard timeout so a hung upstream fetch cannot block forever. */
-function withTimeout(parent: AbortSignal | null | undefined, ms: number): { signal: AbortSignal; clear: () => void } {
+/**
+ * Wrap `parent` with a hard timeout so a hung upstream fetch cannot block forever.
+ * 超时只覆盖「拿到响应头」阶段：响应头一到就 `clear()` 取消定时器，body 读取
+ * 不再受超时限制（大响应体如 200KB 在慢网络/慢渲染下可能超过定时器，误杀
+ * 本已成功返回的数据——表现为"日志全 200 界面却搜不到"）。调用方取消
+ * （parent abort）始终有效，直到任务结束 `dispose()`。
+ */
+function withTimeout(parent: AbortSignal | null | undefined, ms: number): {
+  signal: AbortSignal
+  /** 响应头已到达：取消超时定时器（body 读取不受超时限制）。 */
+  clear: () => void
+  /** 任务结束：移除父信号监听并清理定时器。 */
+  dispose: () => void
+} {
   const controller = new AbortController()
   const timer = setTimeout(() => { controller.abort() }, ms)
-  const onAbort = (): void => { controller.abort() }
-  if (parent !== null && parent !== undefined) parent.addEventListener('abort', onAbort, { once: true })
+  const onParentAbort = (): void => { controller.abort() }
+  if (parent !== null && parent !== undefined) parent.addEventListener('abort', onParentAbort, { once: true })
   return {
     signal: controller.signal,
-    clear: () => {
+    clear: () => { clearTimeout(timer) },
+    dispose: () => {
       clearTimeout(timer)
-      if (parent !== null && parent !== undefined) parent.removeEventListener('abort', onAbort)
+      if (parent !== null && parent !== undefined) parent.removeEventListener('abort', onParentAbort)
     },
   }
 }
@@ -169,8 +182,9 @@ function withTimeout(parent: AbortSignal | null | undefined, ms: number): { sign
  * One non-retrying attempt against a single base. Resolves with repo items on a
  * 2xx response; throws on any other outcome (rate-limit, bad query, network
  * failure). The caller races several of these in parallel.
+ * `onHeaders` 在响应头到达时调用（用于取消超时定时器，让 body 读取不限时）。
  */
-async function tryBase(base: string, query: string, page: number, signal: AbortSignal): Promise<GithubRepo[]> {
+async function tryBase(base: string, query: string, page: number, signal: AbortSignal, onHeaders?: () => void): Promise<GithubRepo[]> {
   const url = buildSearchUrl(base, query, page)
   const response = await proxyFetch(url, {
     signal,
@@ -179,6 +193,7 @@ async function tryBase(base: string, query: string, page: number, signal: AbortS
       'user-agent': 'dsh-desktop-marketplace',
     },
   })
+  onHeaders?.()
   if (response.ok) {
     const payload = await response.json() as { items?: GithubRepo[] }
     return payload.items ?? []
@@ -213,14 +228,14 @@ async function githubSearch(query: string, page: number, signal?: AbortSignal): 
 
   const tasks = bases.map((base) => (async (): Promise<{ ok: boolean; base?: string; items?: GithubRepo[]; error?: unknown }> => {
     const timeoutMs = base === GITHUB_DIRECT_BASE ? GITHUB_DIRECT_TIMEOUT : GITHUB_MIRROR_TIMEOUT
-    const { signal: combined, clear } = withTimeout(master.signal, timeoutMs)
+    const { signal: combined, clear, dispose } = withTimeout(master.signal, timeoutMs)
     try {
-      const items = await tryBase(base, query, page, combined)
-      clear()
+      const items = await tryBase(base, query, page, combined, clear)
+      dispose()
       master.abort() // cancel sibling attempts — first success wins
       return { ok: true, base, items }
     } catch (cause) {
-      clear()
+      dispose()
       return { ok: false, error: cause }
     }
   })())
