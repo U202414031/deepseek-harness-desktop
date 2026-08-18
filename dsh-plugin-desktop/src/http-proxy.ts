@@ -37,6 +37,10 @@ const STRIP_RESPONSE_HEADERS = new Set([
   'keep-alive',
   'transfer-encoding',
   'content-length',
+  // 主进程已用 Node fetch 把响应体透明解压成明文（arrayBuffer() 自动 gunzip），
+  // 必须把 content-encoding 头丢弃——否则客户端（Chromium）看到 gzip 头会二次解压，
+  // 对明文 body 解码失败（"terminated" / 解码错误），表现为「上游 200 但界面解析不到数据」。
+  'content-encoding',
   'access-control-allow-origin',
   'access-control-allow-methods',
   'access-control-allow-headers',
