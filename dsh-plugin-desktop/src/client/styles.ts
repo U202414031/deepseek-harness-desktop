@@ -282,6 +282,10 @@ html:has([aria-modal="true"]) .dshDesktopSidebarSurface::before { -webkit-app-re
 
 /* ---- API settings (left panel) ---- */
 .dshDesktopApiSettings { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 12px; padding: 14px 16px; overflow-y: auto; }
+.dshDesktopApiHeaderRow { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.dshDesktopApiCollapseAll { font-size: 11px; padding: 3px 10px; border: 1px solid var(--dsh-desktop-border); border-radius: 999px; background: var(--dsh-desktop-surface); color: var(--dsh-desktop-fg-muted); cursor: pointer; -webkit-app-region: no-drag; }
+.dshDesktopApiCollapseAll:hover { color: var(--dsh-desktop-accent); border-color: var(--dsh-desktop-accent); }
+.dshDesktopApiSectionBody { padding: 12px 16px; gap: 10px; }
 .dshDesktopApiActions { display: flex; gap: 8px; }
 .dshDesktopApiStatus { font-size: 12px; color: var(--dsh-desktop-accent); margin: 0; }
 .dshDesktopApiQuery { align-self: flex-start; }
@@ -290,6 +294,18 @@ html:has([aria-modal="true"]) .dshDesktopSidebarSurface::before { -webkit-app-re
 .dshDesktopBalanceRow { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; }
 .dshDesktopBalanceRow span { color: var(--dsh-desktop-fg-muted); }
 .dshDesktopBalanceRow b { color: var(--dsh-desktop-fg); font-weight: 600; }
+
+/* ---- API panel: DeepSeek 高峰 / 空闲时段提示条（官方峰谷计价） ---- */
+.dshDesktopPeakBanner { display: flex; flex-direction: column; gap: 5px; padding: 10px 12px; border-radius: 10px; border: 1px solid; }
+.dshDesktopPeakBanner-peak { background: rgba(234, 88, 12, 0.10); border-color: rgba(234, 88, 12, 0.45); }
+.dshDesktopPeakBanner-off { background: rgba(22, 163, 74, 0.10); border-color: rgba(22, 163, 74, 0.45); }
+.dshDesktopPeakBannerRow { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.dshDesktopPeakBannerRow b { font-size: 13px; font-weight: 600; color: var(--dsh-desktop-fg); }
+.dshDesktopPeakTime { margin-left: auto; flex: 0 0 auto; font-size: 11px; color: var(--dsh-desktop-fg-muted); font-variant-numeric: tabular-nums; }
+.dshDesktopPeakBadge { flex: 0 0 auto; font-size: 10px; font-weight: 600; letter-spacing: 0.03em; color: #fff; padding: 2px 8px; border-radius: 999px; }
+.dshDesktopPeakBanner-peak .dshDesktopPeakBadge { background: #ea580c; }
+.dshDesktopPeakBanner-off .dshDesktopPeakBadge { background: #16a34a; }
+.dshDesktopPeakNote { margin: 0; font-size: 11px; line-height: 1.6; color: var(--dsh-desktop-fg-muted); word-break: break-all; }
 
 /* ---- API panel: provider auto-detection + provider links ---- */
 .dshDesktopProviderDetect { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border: 1px solid var(--dsh-desktop-border); border-radius: 10px; background: var(--dsh-desktop-surface); }
