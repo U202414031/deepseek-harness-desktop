@@ -32,7 +32,19 @@ export function MarketplacePanel(): JSX.Element {
   const [searching, setSearching] = useState(false)
   // 本地分页：一次只展示 `visibleCount` 个，点「加载更多」再揭示下一批（不依赖网络）。
   const [visibleCount, setVisibleCount] = useState(MARKETPLACE_PAGE)
-  const searchController = useRef<AbortController | null>(null)
+  const listControllerRef = useRef<AbortController | null>(null)
+  /**
+   * 开始一次新的「列表/搜索」网络请求：先取消上一个仍未完成的同类请求。
+   * 否则旧请求（例如首屏默认仓库加载）完成后会覆盖新结果——表现为
+   * "搜索结果先显示、一两秒后被默认仓库列表顶掉"（时有时无，取决于
+   * 首屏默认加载是否在搜索发起前已经完成）。
+   */
+  const beginListRequest = useCallback((): AbortController => {
+    listControllerRef.current?.abort()
+    const controller = new AbortController()
+    listControllerRef.current = controller
+    return controller
+  }, [])
   const pageRef = useRef<number>(1)
 
   // 内置社区目录永远作为底仓：默认展示 = 社区目录 + 联网拉到的 GitHub 仓库。
@@ -48,10 +60,12 @@ export function MarketplacePanel(): JSX.Element {
    * 加载 dsh 社区仓库（带分页）。默认先用内置目录兜底，再在后台静默尝试 GitHub：
    * 成功则合并真实仓库；失败（502/超时/限流）则保留内置目录并给一句柔和提示，绝不空白。
    */
-  const loadDefault = useCallback(async (reset: boolean, signal?: AbortSignal) => {
+  const loadDefault = useCallback(async (reset: boolean, externalSignal?: AbortSignal) => {
+    const own = externalSignal === undefined ? beginListRequest() : null
+    const signal = externalSignal ?? own!.signal
     const next = reset ? 1 : pageRef.current + 1
     setLoading(true)
-    if (reset) { setGithubPlugins([]); setHint(null); setError(null); setVisibleCount(MARKETPLACE_PAGE) }
+    if (reset) { setHint(null); setError(null); setVisibleCount(MARKETPLACE_PAGE) }
     try {
       const { items } = await fetchGithubPlugins(next, signal)
       setGithubPlugins((prev) => (reset ? items : appendPlugins(prev, items)))
@@ -63,18 +77,20 @@ export function MarketplacePanel(): JSX.Element {
     } finally {
       if (!signal?.aborted) setLoading(false)
     }
-  }, [])
+  }, [beginListRequest])
 
   /**
    * 执行搜索：本地意图搜索（localSearch）即时返回结果，不依赖网络；同时后台尝试
    * GitHub 实时搜索并追加匹配项。GitHub 连不通时本地结果照常可用。
    */
-  const runSearch = useCallback(async (raw: string, reset: boolean, signal?: AbortSignal) => {
+  const runSearch = useCallback(async (raw: string, reset: boolean, externalSignal?: AbortSignal) => {
     const q = raw.trim()
     if (q.length === 0) {
-      void loadDefault(true, signal)
+      void loadDefault(true, externalSignal)
       return
     }
+    const own = externalSignal === undefined ? beginListRequest() : null
+    const signal = externalSignal ?? own!.signal
     const next = reset ? 1 : pageRef.current + 1
     setSearching(true)
     setHint(null)
@@ -90,19 +106,17 @@ export function MarketplacePanel(): JSX.Element {
     } finally {
       if (!signal?.aborted) setSearching(false)
     }
-  }, [loadDefault])
+  }, [loadDefault, beginListRequest])
 
   useEffect(() => {
-    const controller = new AbortController()
-    void loadDefault(true, controller.signal)
-    return () => { controller.abort() }
+    void loadDefault(true)
+    return () => { listControllerRef.current?.abort() }
   }, [loadDefault])
 
   // Re-run the default catalog whenever the query box is cleared back to empty.
   const onQueryChange = useCallback((value: string) => {
     setQuery(value)
     if (value.trim().length === 0) {
-      searchController.current?.abort()
       setSearching(false)
       setHint(null)
       void loadDefault(true)
@@ -111,10 +125,7 @@ export function MarketplacePanel(): JSX.Element {
 
   const onSubmitSearch = useCallback((event: React.FormEvent) => {
     event.preventDefault()
-    searchController.current?.abort()
-    const controller = new AbortController()
-    searchController.current = controller
-    void runSearch(query, true, controller.signal)
+    void runSearch(query, true)
   }, [query, runSearch])
 
   // 「加载更多」只揭示本地已加载列表的下一批，完全不依赖网络（GitHub 不可达也能翻页）。
@@ -122,7 +133,7 @@ export function MarketplacePanel(): JSX.Element {
     setVisibleCount((count) => count + MARKETPLACE_PAGE)
   }, [])
 
-  useEffect(() => () => { searchController.current?.abort() }, [])
+  useEffect(() => () => { listControllerRef.current?.abort() }, [])
 
   // 展示列表：搜索时走本地中英文意图匹配，并合并任何已拉到的 GitHub 实时结果（联网时）。
   // 空查询则展示全部（社区目录 + GitHub 合并后、按 star 排序）。
@@ -190,7 +201,7 @@ export function MarketplacePanel(): JSX.Element {
             <button
               type="button"
               className="dshDesktopLinkButton"
-              onClick={() => { setQuery(''); searchController.current?.abort(); setSearching(false); void loadDefault(true) }}
+              onClick={() => { setQuery(''); setSearching(false); void loadDefault(true) }}
             >
               清除
             </button>
