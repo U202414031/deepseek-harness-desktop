@@ -186,6 +186,9 @@ export class QqChannel implements ImChannelAdapter {
       },
     })
     this.ws = ws
+    // 不持有 Node 事件循环：Electron 桌面端由宿主进程保活，不受影响；
+    // 无头冒烟/校验进程则可正常退出（否则 QQ 长连接会让进程永不退出）。
+    ws.unref?.()
     ws.on('open', () => {
       this.loginTip = '网关已连接，等待 QQ 消息…'
     })
@@ -269,6 +272,8 @@ export class QqChannel implements ImChannelAdapter {
   private startHeartbeat(interval: number): void {
     this.stopHeartbeat()
     this.heartbeatTimer = setInterval(() => this.sendHeartbeat(), interval)
+    // 与网关 WebSocket 一样不持有事件循环（见 openGateway 中的 unref 注释）。
+    this.heartbeatTimer.unref?.()
   }
 
   private stopHeartbeat(): void {

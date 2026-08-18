@@ -22,7 +22,7 @@ describe('workflow data model', () => {
   })
 
   it('ports and edge path use canvas coordinates', () => {
-    const node = createWorkflow('Demo').nodes[1]
+    const node = createWorkflow('Demo').nodes[1]!
     expect(outputPort(node).x).toBe(node.x + 232)
     expect(inputPort(node).x).toBe(node.x)
     expect(outputPort(node).y).toBe(inputPort(node).y)
@@ -72,7 +72,7 @@ describe('workflow store', () => {
     expect(wf?.edges).toHaveLength(base + 2)
 
     // Remove the last added edge (agent -> end).
-    const last = wf!.edges[wf!.edges.length - 1]
+    const last = wf!.edges[wf!.edges.length - 1]!
     workflowStore.disconnect(id, last.id)
     wf = workflowStore.getSnapshot().workflows.find((w) => w.id === id)
     expect(wf?.edges).toHaveLength(base + 1)

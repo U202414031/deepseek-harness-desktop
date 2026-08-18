@@ -199,9 +199,13 @@ export function apply(ctx: Context, config: Config): void {
   // The marketplace UI runs in the sandboxed renderer and cannot reach the
   // Host-only package-manager services directly; expose them through loopback
   // routes only when both capabilities are present in this generation.
-  ctx.inject(['desktopPnpm', 'desktopProfiles'], (childCtx) => {
-    childCtx.effect(() => installMarketplaceRoutes(childCtx), 'dsh-plugin-desktop: marketplace routes')
-  })
+  // Guarded: bare test harnesses and minimal contexts may not expose the
+  // Cordis `inject` service binder, and the marketplace is an optional surface.
+  if (typeof ctx.inject === 'function') {
+    ctx.inject(['desktopPnpm', 'desktopProfiles'], (childCtx) => {
+      childCtx.effect(() => installMarketplaceRoutes(childCtx), 'dsh-plugin-desktop: marketplace routes')
+    })
+  }
   // The sandboxed renderer cannot reach third-party APIs (CORS); let it tunnel
   // requests through the Host process, which uses Node fetch (no CORS).
   ctx.effect(() => installHttpProxy(ctx), 'dsh-plugin-desktop: http proxy')

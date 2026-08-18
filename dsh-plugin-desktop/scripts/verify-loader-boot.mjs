@@ -23,6 +23,12 @@ const RUNNER_ENVIRONMENT_NAMES = new Set([
   'NPM_CONFIG_DISTURL',
 ])
 const home = mkdtempSync(join(tmpdir(), 'dsh-desktop-loader-'))
+// Isolate the OS-level home so desktop features that read user state outside
+// the profile directory (e.g. the IM gateway's ~/.dsh-desktop/im-gateway.json)
+// stay hermetic: a real channel config must never connect live channels during
+// a headless smoke, which would keep the verification process from exiting.
+process.env.USERPROFILE = home
+process.env.HOME = home
 let ctx
 let mounted
 let mountedSpec
@@ -145,10 +151,10 @@ try {
   if (marketEntry?.options.name !== 'dsh-community-market') {
     throw new Error('community market Host plugin did not activate through its bare package name')
   }
-  if (mountedSpec?.mode !== 'compatibility') {
+  if (mountedSpec?.mode !== 'advanced') {
     throw new Error(`desktop plugin produced an unexpected shell mode: ${String(mountedSpec?.mode)}`)
   }
-  if (mountedSpec?.url !== 'http://127.0.0.1:43120/?dsh-desktop-mode=compatibility&dsh-desktop-platform=darwin') {
+  if (mountedSpec?.url !== 'http://127.0.0.1:43120/?dsh-desktop-mode=advanced&dsh-desktop-platform=darwin') {
     throw new Error(`desktop plugin produced an unexpected renderer URL: ${String(mountedSpec?.url)}`)
   }
 } finally {

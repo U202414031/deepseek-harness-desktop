@@ -27,6 +27,13 @@ let mountedSpec
 let nativeThemeSource = 'system'
 const trayItems = []
 
+// Isolate the OS-level home so desktop features that read user state outside
+// the profile directory (e.g. the IM gateway's ~/.dsh-desktop/im-gateway.json)
+// stay hermetic: a real channel config must never connect live channels during
+// a headless smoke, which would keep the verification process from exiting.
+process.env.USERPROFILE = home
+process.env.HOME = home
+
 try {
   writeFileSync(join(home, 'settings.yaml'), [
     'dsh-desktop:',

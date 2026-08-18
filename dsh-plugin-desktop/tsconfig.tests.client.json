@@ -12,6 +12,7 @@
     "tests/client-directory-picker.spec.ts",
     "tests/client-environment.spec.ts",
     "tests/usage.spec.ts",
-    "tests/skins-import.spec.ts"
+    "tests/skins-import.spec.ts",
+    "tests/workflow.spec.ts"
   ]
 }

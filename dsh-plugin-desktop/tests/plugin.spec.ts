@@ -149,10 +149,10 @@ function createHarness(platform: DesktopRuntime['platform'] = 'darwin'): PluginH
 }
 
 describe('desktop Host plugin', () => {
-  it('defaults to compatibility mode and validates both schemas', () => {
-    expect(Config({} as DesktopConfig)).toEqual(config)
-    expect(Config({ mode: 'advanced' } as DesktopConfig)).toEqual({ ...config, mode: 'advanced' })
-    expect(DesktopSettingsSchema({} as DesktopSettings)).toEqual({ mode: 'compatibility', port: 0, logLevel: 'info' })
+  it('defaults to advanced mode and validates both schemas', () => {
+    expect(Config({} as DesktopConfig)).toEqual({ ...config, mode: 'advanced' })
+    expect(Config({ mode: 'compatibility' } as DesktopConfig)).toEqual({ ...config, mode: 'compatibility' })
+    expect(DesktopSettingsSchema({} as DesktopSettings)).toEqual({ mode: 'advanced', port: 0, logLevel: 'info' })
     expect(() => DesktopSettingsSchema({ port: -1 } as DesktopSettings)).toThrow()
     expect(() => DesktopSettingsSchema({ port: 1.5 } as DesktopSettings)).toThrow()
     expect(() => DesktopSettingsSchema({ port: 65_536 } as DesktopSettings)).toThrow()
@@ -212,7 +212,7 @@ describe('desktop Host plugin', () => {
       mode: 'compatibility',
       url: 'http://127.0.0.1:43120/?dsh-desktop-mode=compatibility&dsh-desktop-platform=darwin',
       productName: 'DSH Desktop',
-      windowTitle: 'DeepSeek Harness Desktop',
+      windowTitle: 'DeepSeek Harness Desktop · DEV',
       readThemeSource: expect.any(Function),
     }))
     expect(harness.shell()?.iconPath.endsWith(join('build', 'app-icon-mac.png'))).toBe(true)

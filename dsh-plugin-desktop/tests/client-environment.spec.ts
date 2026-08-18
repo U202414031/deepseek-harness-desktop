@@ -5,6 +5,7 @@ import { provideDesktopLayout } from '../src/client/layout-service.ts'
 import { parseDesktopClientEnvironment } from '../src/client/environment.ts'
 import {
   ARTIFACTS_DEFAULT,
+  ARTIFACTS_RAIL,
   computeDesktopColumns, DesktopLayoutState, MACOS_SIDEBAR_COLLAPSED, SIDEBAR_COLLAPSED,
 } from '../src/client/layout-state.ts'
 import { installAdvancedStyles } from '../src/client/styles.ts'
@@ -118,9 +119,9 @@ describe('advanced desktop layout', () => {
   })
 
   it('uses the compatibility rail on Windows and the wider desktop rail on macOS', () => {
-    expect(computeDesktopColumns(1440, 0, 0)).toEqual({ sidebar: SIDEBAR_COLLAPSED, center: 1384, details: 0, artifacts: 0 })
+    expect(computeDesktopColumns(1440, 0, 0)).toEqual({ sidebar: SIDEBAR_COLLAPSED, center: 1328, details: 0, artifacts: ARTIFACTS_RAIL })
     expect(computeDesktopColumns(1440, 0, 0, MACOS_SIDEBAR_COLLAPSED))
-      .toEqual({ sidebar: MACOS_SIDEBAR_COLLAPSED, center: 1350, details: 0, artifacts: 0 })
+      .toEqual({ sidebar: MACOS_SIDEBAR_COLLAPSED, center: 1294, details: 0, artifacts: ARTIFACTS_RAIL })
     expect(SIDEBAR_COLLAPSED).toBe(56)
     expect(MACOS_SIDEBAR_COLLAPSED).toBe(90)
   })
