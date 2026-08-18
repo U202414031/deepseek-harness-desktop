@@ -58,7 +58,8 @@ export function MarketplacePanel(): JSX.Element {
       pageRef.current = next
     } catch (cause) {
       if (signal?.aborted) return
-      setHint('GitHub 实时列表暂不可用（可能网络无法访问 api.github.com），已为你展示内置的 dsh 社区精选插件；连通后点「刷新列表」可获取更多。')
+      const reason = cause instanceof Error ? cause.message : '未知错误'
+      setHint(`GitHub 实时列表暂不可用（${reason}）。已为你展示内置的 dsh 社区精选插件；连通后点「刷新列表」可获取更多。`)
     } finally {
       if (!signal?.aborted) setLoading(false)
     }
@@ -84,7 +85,8 @@ export function MarketplacePanel(): JSX.Element {
       pageRef.current = next
     } catch (cause) {
       if (signal?.aborted) return
-      setHint('GitHub 实时搜索暂不可用，已用本地意图搜索为你匹配内置社区插件（支持中英文）。')
+      const reason = cause instanceof Error ? cause.message : '未知错误'
+      setHint(`GitHub 实时搜索暂不可用（${reason}）。已用本地意图搜索为你匹配内置社区插件（支持中英文）。`)
     } finally {
       if (!signal?.aborted) setSearching(false)
     }

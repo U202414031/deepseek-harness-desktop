@@ -84,7 +84,7 @@ const GITHUB_PER_PAGE = 30
  * timeout, so without this a blocked network would hang until TCP timeout and
  * freeze the marketplace UI (buttons stuck on "加载中"). */
 const GITHUB_DIRECT_TIMEOUT = 8000
-const GITHUB_MIRROR_TIMEOUT = 5000
+const GITHUB_MIRROR_TIMEOUT = 6000
 
 /**
  * Direct GitHub API base. On networks where this is unreachable (mainland
@@ -99,10 +99,13 @@ const GITHUB_DIRECT_BASE = 'https://api.github.com'
  * `https://api.github.com/<path>` to GitHub from a network that can reach it.
  * They are reverse proxies (not separate copies), so the data stays in sync with
  * GitHub (modulo a short cache). Raced in parallel with the direct link.
+ *
+ * 2026-08 实测：gh-proxy.com 稳定可用（~1.5s 返回）；ghfast.top 与
+ * mirror.ghproxy.com 已不可达（超时），保留待其恢复；顺序即偏好顺序。
  */
 const GITHUB_MIRRORS: readonly string[] = [
-  'https://ghfast.top/https://api.github.com',
   'https://gh-proxy.com/https://api.github.com',
+  'https://ghfast.top/https://api.github.com',
   'https://mirror.ghproxy.com/https://api.github.com',
 ]
 
@@ -229,8 +232,14 @@ async function githubSearch(query: string, page: number, signal?: AbortSignal): 
       rememberWorkingBase(success.base)
       return success.items
     }
-    const lastError = results.map((result) => result.error).filter(Boolean).pop()
-    throw lastError instanceof Error ? lastError : new Error('GitHub 请求失败')
+    // 全部失败：优先展示最有诊断价值的错误（限流 403/429 提示「稍后重试」，
+    // 比笼统的「超时」更有用），否则取最后一条错误。
+    const errors = results
+      .map((result) => result.error)
+      .filter((error): error is Error => error instanceof Error)
+    const rateLimit = errors.find((error) => /403|429|限流/.test(error.message))
+    const lastError = rateLimit ?? errors.pop() ?? new Error('GitHub 请求失败')
+    throw lastError
   } finally {
     if (signal !== null && signal !== undefined) signal.removeEventListener('abort', onCallerAbort)
   }
