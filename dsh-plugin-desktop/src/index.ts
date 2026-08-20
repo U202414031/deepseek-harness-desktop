@@ -22,8 +22,14 @@ import {
   handleRendererBootRequest,
   RENDERER_BOOT_REPORT_PATH,
 } from './renderer-boot.ts'
-import { DESKTOP_DIRECTORY_PICKER_PATH } from './directory-picker-contract.ts'
-import { handleDesktopDirectoryPickerRequest } from './directory-picker-route.ts'
+import {
+  DESKTOP_DIRECTORY_PICKER_PATH,
+  DESKTOP_DIRECTORY_VALIDATOR_PATH,
+} from './directory-picker-contract.ts'
+import {
+  handleDesktopDirectoryPickerRequest,
+  handleDesktopDirectoryValidationRequest,
+} from './directory-picker-route.ts'
 import { DESKTOP_IDE_INFO_PATH, DESKTOP_IDE_CONFIG_PATH, DESKTOP_IDE_ASK_PATH, DESKTOP_IDE_OPEN_PATH } from './ide-info-contract.ts'
 import { startIdeServer, type IdeServerHandle } from './ide-server.ts'
 import { handleIdeInfoRequest, handleIdeConfigRequest, handleIdeAskRequest, handleIdeOpenRequest, writeIdeBridgeConfig } from './ide-routes.ts'
@@ -176,6 +182,22 @@ export function apply(ctx: Context, config: Config): void {
         ),
       }),
       'dsh-plugin-desktop: native directory picker route',
+    )
+    ctx.effect(
+      () => ctx.webServer.register({
+        kind: 'exact',
+        path: DESKTOP_DIRECTORY_VALIDATOR_PATH,
+        handler: (req, res) => handleDesktopDirectoryValidationRequest(
+          req,
+          res,
+          rendererOrigin,
+          path => runtime.validateDirectory(path),
+          cause => {
+            ctx.logger.error(`dsh-plugin-desktop: workspace directory validation failed: ${cause instanceof Error ? cause.message : String(cause)}`)
+          },
+        ),
+      }),
+      'dsh-plugin-desktop: workspace directory validation route',
     )
   }
   ctx.effect(() => {

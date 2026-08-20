@@ -16,6 +16,7 @@ import {
   PROFILE_PATCH_FILENAME,
   PROFILE_TEMPLATES,
   readProfileManifest,
+  resolveBundleDir,
   resolveProfileDir,
   writeProfileManifest,
   type Profile,
@@ -29,6 +30,11 @@ import FileSettingsProvider, {
 import { parseDocument } from 'yaml'
 import { unpackedAsarPath } from './packaged-runtime-path.ts'
 import type { DesktopShellMode } from './runtime.ts'
+import {
+  activeDesktopProfileLayers,
+  desktopPluginBundleMutable,
+  readDesktopDisabledBundles,
+} from './desktop-plugins.ts'
 
 /** Persistent profile managed by the desktop launcher and the ordinary dsh plugin command. */
 export const DESKTOP_PROFILE_NAME = 'desktop'
@@ -236,6 +242,61 @@ export function ensureDesktopProfile(home: string = resolveDshHome()): string {
   return dir
 }
 
+/**
+ * Load a profile while resolving disabled third-party bundles only after they have been filtered.
+ * The ordinary upstream loader remains the no-state path; this recovery path intentionally avoids
+ * reading a disabled package's manifest or patch so a malformed plugin can be disabled pre-Host.
+ */
+function loadRecoveryFilteredProfile(
+  profileName: string,
+  profileDir: string,
+  home: string,
+  disabledBundles: ReadonlySet<string>,
+): Profile {
+  if (disabledBundles.size === 0) return loadProfile(BIN_NAME, profileName, INSTALL_ANCHOR, home)
+  if (!existsSync(join(profileDir, 'package.json'))) {
+    const template = PROFILE_TEMPLATES[profileName]
+    if (template === undefined) {
+      throw new Error(`${BIN_NAME}: profile ${JSON.stringify(profileName)} does not exist`)
+    }
+    initProfile(profileDir, template)
+  }
+  const manifest = readProfileManifest(BIN_NAME, profileDir)
+  const rawBundles = (manifest.dsh?.profile as { bundles?: unknown } | undefined)?.bundles
+  if (rawBundles !== undefined
+    && (!Array.isArray(rawBundles) || rawBundles.some(value => typeof value !== 'string'))) {
+    throw new Error(`${BIN_NAME}: dsh.profile.bundles must be an array of package names`)
+  }
+  const bundles = (rawBundles ?? []) as string[]
+  const layers: Profile['layers'] = []
+  for (const packageName of bundles) {
+    if (desktopPluginBundleMutable(packageName) && disabledBundles.has(packageName)) continue
+    const packageDir = resolveBundleDir(BIN_NAME, packageName, INSTALL_ANCHOR, profileDir)
+    const bundleManifest: unknown = JSON.parse(readFileSync(join(packageDir, 'package.json'), 'utf8'))
+    const declared = bundleManifest !== null && typeof bundleManifest === 'object'
+      ? (bundleManifest as { dsh?: { bundle?: { patch?: unknown } } }).dsh?.bundle?.patch
+      : undefined
+    if (typeof declared !== 'string' || declared.length === 0) {
+      throw new Error(`${BIN_NAME}: profile bundle ${JSON.stringify(packageName)} declares no dsh.bundle in its package.json`)
+    }
+    const patchPath = join(packageDir, declared)
+    layers.push({
+      packageName,
+      packageDir,
+      patchPath,
+      patches: loadOverlayPatches(BIN_NAME, patchPath),
+    })
+  }
+  const patchPath = join(profileDir, PROFILE_PATCH_FILENAME)
+  return {
+    name: profileName,
+    dir: profileDir,
+    layers,
+    patchPath,
+    patches: existsSync(patchPath) ? loadOverlayPatches(BIN_NAME, patchPath) : [],
+  }
+}
+
 /** Resolve the agent presets shipped by the matching dsh CLI dependency. */
 export function shippedPresetRoot(moduleUrl: string = import.meta.url): string {
   const require = createRequire(moduleUrl)
@@ -263,6 +324,22 @@ function rowDisabledOnPlatform(row: EntryOptions, platform: NodeJS.Platform): bo
     },
   })
   return Boolean(evaluate({ process: scopedProcess }, row.disabled.__jsExpr))
+}
+
+/** Reject duplicate entries before the Loader turns them into a startup crash. */
+function assertUniqueEntryIds(rows: readonly EntryOptions[]): void {
+  const seen = new Set<string>()
+  for (const row of rows) {
+    if (typeof row.id === 'string') {
+      if (seen.has(row.id)) {
+        throw new Error(`${BIN_NAME}: duplicate loader entry id "${row.id}" in the composed profile`)
+      }
+      seen.add(row.id)
+    }
+    if (row.group === true && Array.isArray(row.config)) {
+      assertUniqueEntryIds(row.config)
+    }
+  }
 }
 
 /** Find one package manifest using the selected profile's dependency graph. */
@@ -330,6 +407,7 @@ function omitUnresolvedOptionalEntries(
  * @param home - Harness home containing profiles and the machine-wide patch.
  * @param platform - native platform selecting launcher-owned safety overlays.
  * @param profileName - existing or lazily available Web profile to compose.
+ * @param pluginStatePath - optional Desktop-private disabled-bundle state.
  * @returns root config, profile metadata, and ordered patches.
  */
 export function prepareDesktopProfile(
@@ -337,12 +415,21 @@ export function prepareDesktopProfile(
   home: string = resolveDshHome(),
   platform: NodeJS.Platform = process.platform,
   profileName: string = DESKTOP_PROFILE_NAME,
+  pluginStatePath?: string,
 ): PreparedDesktopProfile {
   const profileDir = profileName === DESKTOP_PROFILE_NAME
     ? ensureDesktopProfile(home)
     : resolveProfileDir(profileName, home)
   healProfilesModuleFallback(INSTALL_ANCHOR, home)
-  const profile = loadProfile(BIN_NAME, profileName, INSTALL_ANCHOR, home)
+  const disabledBundles = pluginStatePath === undefined
+    ? new Set<string>()
+    : readDesktopDisabledBundles(pluginStatePath, profileName)
+  const profile = loadRecoveryFilteredProfile(
+    profileName,
+    profileDir,
+    home,
+    disabledBundles,
+  )
   const rootConfig = join(profileDir, DESKTOP_PROFILE_ROOT)
   const bareModuleBaseUrl = pathToFileURL(join(profile.dir, 'package.json')).href
   writeFileSync(rootConfig, '[]\n')
@@ -350,7 +437,7 @@ export function prepareDesktopProfile(
   const desktopPatches = loadOverlayPatches(BIN_NAME, DESKTOP_PATCH_PATH)
   const bundlePatches: PatchOptions[] = []
   let desktopLayerInserted = false
-  for (const layer of profile.layers) {
+  for (const layer of activeDesktopProfileLayers(profile, disabledBundles)) {
     bundlePatches.push(...layer.patches)
     if (layer.packageName !== '@deepseek-ai/dsh-web-app') continue
     bundlePatches.push(...desktopPatches)
@@ -370,8 +457,10 @@ export function prepareDesktopProfile(
     ...profile.patches,
     ...homePatches,
   ]
+  const composedRows = composeEntries([patches])
+  assertUniqueEntryIds(composedRows)
   const rows = new Map<string, EntryOptions>()
-  for (const row of composeEntries([patches])) {
+  for (const row of composedRows) {
     if (typeof row.id === 'string') rows.set(row.id, row)
   }
   const settings = rows.get('settings')

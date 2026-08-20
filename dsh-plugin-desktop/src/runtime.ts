@@ -168,6 +168,9 @@ export interface DesktopRuntime {
   /** Reveal and focus the current window, if mounted. */
   show(): void
 
+  /** Request native attention for background activity while the window is unfocused. */
+  notifyAttention(notification: DesktopNotification): void
+
   /**
    * Contribute one command to the native tray for the current Cordis lifetime.
    * @param item - dynamic label, state, and invocation owned by the caller.
@@ -183,6 +186,9 @@ export interface DesktopRuntime {
 
   /** Open the desktop operating system's native workspace-folder chooser. */
   pickDirectory(): Promise<string | null>
+
+  /** Confirm that one renderer-selected workspace is safe to persist. */
+  validateDirectory(path: string): Promise<boolean>
 
   /** Accept the terminal client Loader outcome for the mounted generation. */
   reportRendererBoot(report: RendererBootReport): void
