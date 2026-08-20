@@ -37,6 +37,10 @@ export interface DesktopPnpmRuntimeOptions {
   electronVersion: string
   /** Private application-owned directory receiving generated files. */
   stateDir: string
+  /** Optional pnpm content-addressable store directory injected into the pnpm
+   * process tree (`npm_config_store_dir`); keeps package cache under the data
+   * root instead of the platform default (`%LOCALAPPDATA%\pnpm` on Windows). */
+  storeDir?: string
   /** Parent environment whose PATH is updated; defaults to `process.env`. */
   environment?: NodeJS.ProcessEnv
 }
@@ -235,6 +239,7 @@ function posixPnpmShim(
       'npm_config_runtime=electron',
       `npm_config_target=${quoteSh(options.electronVersion)}`,
       `npm_config_disturl=${quoteSh(ELECTRON_HEADERS_URL)}`,
+      ...(options.storeDir === undefined ? [] : [`npm_config_store_dir=${quoteSh(options.storeDir)}`]),
       `exec ${quoteSh(options.appExecutable)} --import ${quoteSh(clearEnvironmentUrl)} ${quoteSh(options.pnpmBinPath)} "$@"`,
     ].join(' '),
     '',
@@ -269,6 +274,7 @@ function windowsPnpmShim(
     'set "npm_config_runtime=electron"',
     `set "npm_config_target=${escapeBatchSetValue(options.electronVersion)}"`,
     `set "npm_config_disturl=${ELECTRON_HEADERS_URL}"`,
+    ...(options.storeDir === undefined ? [] : [`set "npm_config_store_dir=${escapeBatchSetValue(options.storeDir)}"`]),
     `${quoteBatchWord(options.appExecutable)} --import ${quoteBatchWord(clearEnvironmentUrl)} ${quoteBatchWord(options.pnpmBinPath)} %*`,
     'exit /b %errorlevel%',
     '',

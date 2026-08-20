@@ -1,0 +1,7 @@
+# dsh-desktop-github-market bundle: GitHub community plugin-market browsing
+# surface. Renderer-only — the host row is a placeholder so the Loader can
+# resolve the insert; the web client half comes from `exports["./client"]`
+# via the `dsh.client` declaration.
+- insert:
+    - id: desktop-github-market
+      name: dsh-desktop-github-market

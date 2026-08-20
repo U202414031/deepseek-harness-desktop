@@ -15,9 +15,8 @@ import {
 } from '@deepseek-ai/dsh-client-ui-theme'
 import { settingsNamespace } from '@deepseek-ai/dsh-settings'
 import { installMarketplaceRoutes } from './marketplace-host.ts'
+import { installDataRootRoutes } from './data-routes.ts'
 import { installHttpProxy } from './http-proxy.ts'
-import { installSkinsRoutes } from './skins-host.ts'
-import { installImGateway } from './im-gateway/index.ts'
 import {
   handleRendererBootRequest,
   RENDERER_BOOT_REPORT_PATH,
@@ -30,10 +29,6 @@ import {
   handleDesktopDirectoryPickerRequest,
   handleDesktopDirectoryValidationRequest,
 } from './directory-picker-route.ts'
-import { DESKTOP_IDE_INFO_PATH, DESKTOP_IDE_CONFIG_PATH, DESKTOP_IDE_ASK_PATH, DESKTOP_IDE_OPEN_PATH } from './ide-info-contract.ts'
-import { startIdeServer, type IdeServerHandle } from './ide-server.ts'
-import { handleIdeInfoRequest, handleIdeConfigRequest, handleIdeAskRequest, handleIdeOpenRequest, writeIdeBridgeConfig } from './ide-routes.ts'
-import { loadIdeConfig } from './ide-config.ts'
 import type { DesktopShellMode } from './runtime.ts'
 import type {} from './runtime.ts'
 
@@ -232,76 +227,20 @@ export function apply(ctx: Context, config: Config): void {
       childCtx.effect(() => installMarketplaceRoutes(childCtx), 'dsh-plugin-desktop: marketplace routes')
     })
   }
+  // Data-root status/update routes back the Settings → 数据目录 page. The
+  // sandboxed renderer cannot read the launcher environment, so the surface
+  // queries the live state and persists `dsh-desktop.dataDir` here.
+  ctx.effect(() => installDataRootRoutes(ctx), 'dsh-plugin-desktop: data root routes')
   // The sandboxed renderer cannot reach third-party APIs (CORS); let it tunnel
   // requests through the Host process, which uses Node fetch (no CORS).
   ctx.effect(() => installHttpProxy(ctx), 'dsh-plugin-desktop: http proxy')
-  // Whale-skin assets (videos / backdrops / sprite frames) are served over the
-  // loopback server because the sandboxed renderer rejects file:// URLs; skin
-  // definitions reference them as same-origin `/desktop/skins/...` paths.
-  ctx.effect(() => installSkinsRoutes(ctx), 'dsh-plugin-desktop: skins asset routes')
-  // In-app IM gateway: bridges phone-side QQ / 飞书 / 微信 to the local DeepSeek
-  // agent so a user can query status and dispatch tasks from their phone.
-  // Guarded so a failure here can never take down the whole plugin tree.
-  ctx.effect(() => {
-    try {
-      return installImGateway(ctx)
-    } catch (e) {
-      ctx.logger.error('dsh-plugin-desktop: IM 网关初始化失败，已跳过（不影响其他功能）：')
-      ctx.logger.error(e)
-      return () => {}
-    }
-  }, 'dsh-plugin-desktop: im gateway')
-  // Embedded IDE (code-server) + the selection→agent bridge — advanced shell
-  // only. The IDE is a local loopback process, not a cloud service; it is
-  // seeded with the profile directory plus the user-approved folders as
-  // workspace roots. `desktopProfiles` and `agents` are optional services in
-  // minimal/bare contexts, so inject them guardedly (mirroring the marketplace
-  // routes above) instead of adding them to the static `inject` list.
-  if (config.mode === 'advanced' && typeof ctx.inject === 'function') {
-    ctx.inject(['desktopProfiles', 'agents'], (childCtx) => {
-      const profileDir = childCtx.desktopProfiles?.current.dir
-      if (profileDir === undefined) return
-      let ideServer: IdeServerHandle | undefined
-      childCtx.effect(() => {
-        const cfg = loadIdeConfig(profileDir)
-        ideServer = startIdeServer({ ctx: childCtx, rendererOrigin, profileDir, allowedDirs: cfg.allowedDirs })
-        // Persist the loopback endpoint the code-server extension should POST to.
-        writeIdeBridgeConfig(profileDir, rendererOrigin, DESKTOP_IDE_ASK_PATH)
-        return () => { ideServer?.dispose(); ideServer = undefined }
-      }, 'dsh-plugin-desktop: ide server')
-      childCtx.effect(() => childCtx.webServer.register({
-        kind: 'exact',
-        path: DESKTOP_IDE_INFO_PATH,
-        handler: (req, res) => handleIdeInfoRequest(
-          req, res, rendererOrigin,
-          () => ideServer?.getInfo() ?? {
-            url: null,
-            status: 'missing',
-            detail: undefined,
-            vscode: { found: false, path: null, version: null, extensionReady: false },
-          },
-        ),
-      }), 'dsh-plugin-desktop: ide info route')
-      childCtx.effect(() => childCtx.webServer.register({
-        kind: 'exact',
-        path: DESKTOP_IDE_CONFIG_PATH,
-        handler: (req, res) => void handleIdeConfigRequest(req, res, rendererOrigin, profileDir, () => ideServer),
-      }), 'dsh-plugin-desktop: ide config route')
-      // Launch the workspace in the user's native VS Code.
-      childCtx.effect(() => childCtx.webServer.register({
-        kind: 'exact',
-        path: DESKTOP_IDE_OPEN_PATH,
-        handler: (req, res) => handleIdeOpenRequest(req, res, rendererOrigin, () => ideServer?.openInVSCode() ?? false),
-      }), 'dsh-plugin-desktop: ide open route')
-      // Bridge: forward an editor selection (file + selected text) into the live
-      // agent as a user message. Host-side injection — no browser plumbing needed.
-      childCtx.effect(() => childCtx.webServer.register({
-        kind: 'exact',
-        path: DESKTOP_IDE_ASK_PATH,
-        handler: (req, res) => void handleIdeAskRequest(req, res, rendererOrigin, childCtx),
-      }), 'dsh-plugin-desktop: ide ask route')
-    })
-  }
+  // Whale-skin assets are now served by the `dsh-desktop-whale-skins` bundle
+  // (`/desktop/skins/*`), composed through `dsh.profile.bundles`.
+  // In-app IM gateway is now a separate bundle (`dsh-desktop-im-bridge`); it is
+  // composed through `dsh.profile.bundles` and can be toggled from the marketplace
+  // / built-in plugin list. Disabled bundles simply never register their routes.
+  // Embedded IDE (code-server) + the selection→agent bridge is now a separate
+  // bundle (`dsh-desktop-ide-bridge`), composed through `dsh.profile.bundles`.
   if (config.mode === 'advanced') {
     ctx.on('settings/updated', (namespace, next) => {
       if (namespace !== UI_THEME_SETTINGS_NAMESPACE) return

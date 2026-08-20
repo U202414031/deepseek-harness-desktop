@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import type { PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from './contracts.ts'
-import { WorkflowCanvas } from './features/workflow/WorkflowCanvas.tsx'
 import type { DesktopClientPlatform } from './environment.ts'
 import {
   ARTIFACTS_RAIL, computeDesktopColumns, DesktopLayoutState, IDE_RAIL,
@@ -19,7 +18,7 @@ export interface AdvancedFrameInjected {
 
 /** Full advanced root slot props. */
 export type AdvancedFrameProps = PropsRuntime<'root'>
-  & PropsRenderSlots<'sidebar' | 'conversation' | 'details' | 'sidebar.marketplace' | 'sidebar.skins' | 'sidebar.api' | 'sidebar.tools' | 'sidebar.workflow' | 'desktop.model-monitor' | 'artifacts' | 'ide' | 'shell.overlay'>
+  & PropsRenderSlots<'sidebar' | 'conversation' | 'details' | 'sidebar.marketplace' | 'sidebar.skins' | 'sidebar.api' | 'sidebar.robots' | 'sidebar.workflow' | 'workflow.canvas' | 'desktop.model-monitor' | 'artifacts' | 'ide' | 'shell.overlay'>
   & AdvancedFrameInjected
 
 /** Desktop-owned transparent frame around the unchanged product surfaces. */
@@ -128,13 +127,13 @@ export function AdvancedFrame({ layout, platform, renderSlot, useSessions }: Adv
           <button
             type="button"
             className="dshDesktopRailButton"
-            data-active={panels.leftPanel === 'tools' || undefined}
-            title="外部工具"
-            aria-label="外部工具"
-            aria-pressed={panels.leftPanel === 'tools'}
-            onClick={() => { layout.setLeftPanel('tools') }}
+            data-active={panels.leftPanel === 'robots' || undefined}
+            title="外部机器人"
+            aria-label="外部机器人"
+            aria-pressed={panels.leftPanel === 'robots'}
+            onClick={() => { layout.setLeftPanel('robots') }}
           >
-            工具
+            机器人
           </button>
           <button
             type="button"
@@ -179,13 +178,13 @@ export function AdvancedFrame({ layout, platform, renderSlot, useSessions }: Adv
           {panels.leftPanel === 'marketplace' && renderSlot('sidebar.marketplace', {})}
           {panels.leftPanel === 'skins' && renderSlot('sidebar.skins', {})}
           {panels.leftPanel === 'api' && renderSlot('sidebar.api', {})}
-          {panels.leftPanel === 'tools' && renderSlot('sidebar.tools', {})}
+          {panels.leftPanel === 'robots' && renderSlot('sidebar.robots', {})}
           {panels.leftPanel === 'workflow' && renderSlot('sidebar.workflow', {})}
         </div>
       </aside>
       <main className="dshDesktopConversationSurface" data-hidden={panels.leftPanel === 'workflow' || undefined}>{renderSlot('conversation', {})}</main>
       {panels.leftPanel === 'workflow' && (
-        <main className="dshDesktopWorkflowMain"><WorkflowCanvas /></main>
+        <main className="dshDesktopWorkflowMain">{renderSlot('workflow.canvas', {})}</main>
       )}
       {renderSlot('desktop.model-monitor', {})}
       <aside className="dshDesktopDetailsSurface">{renderSlot('details', {})}</aside>

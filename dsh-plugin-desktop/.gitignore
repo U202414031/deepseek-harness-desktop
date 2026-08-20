@@ -6,3 +6,6 @@ dsh-im-gateway-data/
 .im-gateway-data/
 # code-server 桥接扩展的编译产物（打包/开发前手动 tsc 编译）
 ide-extension/out/
+# 内嵌 IDE 运行时（openvscode-server 发布包，由 scripts/fetch-openvscode-server.mjs 获取）
+tools/code-server/openvscode-server/
+tools/code-server/.fetch-tmp/

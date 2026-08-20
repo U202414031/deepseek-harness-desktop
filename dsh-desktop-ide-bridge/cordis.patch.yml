@@ -1,0 +1,6 @@
+# dsh-desktop-ide-bridge bundle: embedded IDE (code-server), VS Code linkage,
+# built-in CodeMirror editor and the selection→agent bridge. Advanced shell
+# only — the host entry checks the desktop settings mode before wiring routes.
+- insert:
+    - id: desktop-ide-bridge
+      name: dsh-desktop-ide-bridge

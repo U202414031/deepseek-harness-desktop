@@ -35,7 +35,7 @@ export interface DesktopLayoutService {
 }
 
 /** Left-surface selection rendered inside the desktop-owned sidebar column. */
-export type DesktopLeftPanel = 'chat' | 'marketplace' | 'skins' | 'api' | 'tools' | 'workflow'
+export type DesktopLeftPanel = 'chat' | 'marketplace' | 'skins' | 'api' | 'robots' | 'workflow'
 
 /**
  * Engine-owned turn boundary as seen by the upstream `conversation.chat.turnTail`
@@ -82,10 +82,12 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     'sidebar.skins': { kind: 'single'; scope: 'root'; owner: Record<never, never> }
     /** Desktop-owned API settings surface rendered in the left column. */
     'sidebar.api': { kind: 'single'; scope: 'root'; owner: Record<never, never> }
-    /** Desktop-owned external-tools surface rendered in the left column. */
-    'sidebar.tools': { kind: 'single'; scope: 'root'; owner: Record<never, never> }
+    /** Desktop-owned external-robots surface rendered in the left column. */
+    'sidebar.robots': { kind: 'single'; scope: 'root'; owner: Record<never, never> }
     /** Desktop-owned workflow manager surface rendered in the left column. */
     'sidebar.workflow': { kind: 'single'; scope: 'root'; owner: Record<never, never> }
+    /** Desktop-owned workflow canvas rendered in the main column. */
+    'workflow.canvas': { kind: 'single'; scope: 'root'; owner: Record<never, never> }
     /** Headless observer that publishes the active session's model/provider to a shared store. */
     'desktop.model-monitor': { kind: 'single'; scope: 'session-maybe'; owner: Record<never, never> }
     /** Desktop-owned artifacts/code panel rendered in the right column. */

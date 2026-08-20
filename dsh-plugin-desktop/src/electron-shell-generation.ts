@@ -30,6 +30,20 @@ function isZoomShortcut(input: Electron.Input): 'in' | 'out' | 'reset' | undefin
   return undefined
 }
 
+// Allow our own embedded IDE (code-server / VS Code serve-web) running on the
+// loopback interface to load and redirect inside its panel; it is a local
+// process, not an external site, so framing it is safe.
+function isLoopbackOrigin(candidate: string | undefined): boolean {
+  if (candidate === undefined) return false
+  try {
+    const parsed = new URL(candidate)
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false
+    return parsed.hostname === '127.0.0.1' || parsed.hostname === '::1' || parsed.hostname === '[::1]'
+  } catch {
+    return false
+  }
+}
+
 export interface ElectronShellGenerationOptions {
   readonly platform: ElectronPlatformStrategy
   readonly spec: DesktopShellSpec
@@ -98,7 +112,7 @@ export class ElectronShellGeneration {
       } catch {
         targetOrigin = undefined
       }
-      if (targetOrigin !== origin) event.preventDefault()
+      if (targetOrigin !== origin && !isLoopbackOrigin(targetOrigin)) event.preventDefault()
     }
     const redirect = (
       event: Electron.Event,
@@ -113,7 +127,7 @@ export class ElectronShellGeneration {
       } catch {
         targetOrigin = undefined
       }
-      if (targetOrigin !== origin) event.preventDefault()
+      if (targetOrigin !== origin && !isLoopbackOrigin(targetOrigin)) event.preventDefault()
     }
     const rendererGone = (_event: Electron.Event, details: Electron.RenderProcessGoneDetails): void => {
       const detail = `renderer process gone (reason: ${details.reason}, exitCode: ${formatDesktopExitCode(details.exitCode)})`

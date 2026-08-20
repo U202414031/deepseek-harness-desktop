@@ -1,7 +1,6 @@
 /** DSH Desktop executable: minimal Electron bootstrap around the Host Cordis root. */
 
 import { app, crashReporter, dialog } from 'electron'
-import type { Context } from '@deepseek-ai/cordis'
 import { writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -75,6 +74,12 @@ import {
   prepareDesktopProfile,
   type SkippedOptionalEntry,
 } from './profile.ts'
+import { ensureSkillsDirectoryLink } from './skills-junction.ts'
+import {
+  deriveDataDirs,
+  readSettingsDocumentFromHome,
+  resolveDesktopDataRoot,
+} from './data-root.ts'
 import type { DesktopPnpmBootstrap } from './pnpm.ts'
 import {
   createDesktopExitCoordinator,
@@ -232,6 +237,19 @@ async function start(): Promise<void> {
   let rolledBackInstallToNotify: DesktopInstallRecoveryTransaction | undefined
   let startupStage: DesktopStartupFailureStage = 'electron-ready'
   const appVersion = desktopProductVersion()
+  // Unified data root: when configured (env `DSH_DESKTOP_DATA_DIR` or the
+  // `dsh-desktop.dataDir` setting), every desktop data location — DSH home,
+  // shared Agent skills, upload dropbox, and Electron user data — redirects
+  // under the chosen root before any code touches disk. Files already on disk
+  // keep their location; this only redirects where new and future data lands.
+  const dataRoot = resolveDesktopDataRoot(process.env, readSettingsDocumentFromHome(resolveDshHome()))
+  if (dataRoot.root !== undefined) {
+    const dirs = deriveDataDirs(dataRoot.root)
+    app.setPath('userData', dirs.desktopUserData)
+    process.env.DSH_HOME = dirs.dshHome
+    process.env.DSH_AGENTS_HOME = dirs.agentsHome
+    process.env.DSH_DROPBOX_DIR = dirs.dropboxDir
+  }
   try {
     logSink = new LogFileSink(join(app.getPath('userData'), 'logs'), {
       maxFileBytes: 10 * 1024 * 1024,
@@ -415,6 +433,7 @@ async function start(): Promise<void> {
       pnpmBinPath,
       electronVersion,
       stateDir: join(app.getPath('userData'), 'runtime-commands'),
+      ...(dataRoot.root === undefined ? {} : { storeDir: join(dataRoot.root, 'pnpm-store') }),
       environment: process.env,
     })
     const releasePnpmRuntime = generation.own(() => { pnpmRuntime.dispose() })
@@ -502,6 +521,19 @@ async function start(): Promise<void> {
     )
     startupStage = 'runtime-bootstrap'
     lifecycleRecorder.transitionStartupStage(startupStage)
+    // User-owned skill directory relocation: the shared Agent skills root is
+    // injected through the environment every skill consumer reads, and the DSH
+    // skills root is linked to the chosen physical directory (see skills-junction).
+    const skills = prepared.skills
+    if (skills.agentsDir !== undefined) {
+      process.env.DSH_AGENTS_HOME = skills.agentsDir
+    }
+    if (skills.dshDir !== undefined) {
+      const outcome = ensureSkillsDirectoryLink(join(homeDir, 'skills'), skills.dshDir, process.platform)
+      if (!outcome.created) {
+        electronLogger.error(`${BIN_NAME}: DSH skills directory link not created: ${outcome.reason ?? 'unknown'}`)
+      }
+    }
     const dshBootstrapPath = fileURLToPath(new URL('./desktop-cli.js', import.meta.url))
     const dshRuntime = process.platform === 'win32'
       ? installDesktopDshRuntime({

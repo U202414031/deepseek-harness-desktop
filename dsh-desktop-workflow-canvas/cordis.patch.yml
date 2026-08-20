@@ -1,0 +1,6 @@
+# dsh-desktop-workflow-canvas bundle: visual workflow editor. Renderer-only —
+# the host row is a placeholder so the Loader can resolve the insert; the web
+# client half comes from `exports["./client"]`.
+- insert:
+    - id: desktop-workflow-canvas
+      name: dsh-desktop-workflow-canvas

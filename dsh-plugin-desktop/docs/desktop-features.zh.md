@@ -57,6 +57,51 @@
   选择持久化到 `localStorage`（`dsh-desktop-skin`），并在 `advanced-shell` 启动时恢复。
 - `SkinsPanel.tsx`：渲染皮肤卡片，点击即切换。
 
+## 统一数据根目录（所有桌面端数据不固定在系统盘）
+
+桌面端的全部数据默认散落在系统盘用户目录（DSH home `~/.dsh`、公共技能 `~/.agents`、
+上传中转 `~/.dsh-dropbox`、Electron 运行数据 `%APPDATA%\DSH Desktop`、辅助配置
+`~/.dsh-desktop`）。桌面端支持把这些**全部**重定向到一个用户自选的数据根目录：
+
+```yaml
+# 方式一：DSH home 的 settings.yaml
+dsh-desktop:
+  dataDir: D:/MyData/desktop-data
+```
+
+```text
+# 方式二：环境变量（优先级更高，新开的终端/重启后生效）
+setx DSH_DESKTOP_DATA_DIR "D:\MyData\desktop-data"
+```
+
+启动时按优先级解析（环境变量 > 设置文件 > 未配置），并从数据根派生所有子目录：
+
+| 子目录 | 用途 | 注入方式 |
+|---|---|---|
+| `<root>/dsh` | DSH 主目录（profiles/sessions/storages/settings） | `DSH_HOME` |
+| `<root>/agents` | 公共 Agent 技能 | `DSH_AGENTS_HOME` |
+| `<root>/dropbox` | 文件上传中转目录 | `DSH_DROPBOX_DIR` |
+| `<root>/desktop` | Electron 运行数据（日志、更新、崩溃记录） | `app.setPath('userData')` |
+| `<root>/aux` | 辅助配置（IM 网关、IDE 桥） | `~/.dsh-desktop` 目录链接 |
+
+设置入口：官方「设置」面板里的「数据目录」页（显示当前数据根与各子目录，输入新路径
+保存后重启生效）。`DSH_DESKTOP_DATA_DIR` 环境变量存在时优先于设置文件中的值。
+
+### 技能目录细粒度覆盖（可选）
+
+数据根已把技能目录一并搬走（`<root>/dsh/skills` 与 `<root>/agents/skills`）。若只想
+单独指定技能位置（覆盖数据根派生值），仍可用：
+
+```yaml
+dsh-desktop:
+  skills:
+    dshDir: D:/MySkills/dsh      # 覆盖 DSH 技能根（默认 $DSH_HOME/skills）
+    agentsDir: D:/MySkills/agents  # 覆盖公共 Agent 技能根（默认 $DSH_AGENTS_HOME/skills）
+```
+
+`agentsDir` 注入 `DSH_AGENTS_HOME`；`dshDir` 把 `$DSH_HOME/skills` 目录链接到指定目录。
+已存在的真实技能目录不会被覆盖。
+
 ## 接入 / 构建
 
 - 无需修改 `cordis.patch.yml`：Host 路由复用已有 `desktop-shell` 插件生命周期。

@@ -46,9 +46,13 @@ export const DESKTOP_PACKAGE_NAME = 'dsh-plugin-desktop'
 export const DESKTOP_PROFILE_ROOT = 'cordis.yml'
 
 const BIN_NAME = DESKTOP_PACKAGE_NAME
-const REQUIRED_BUNDLES = requiredWebBundles()
+const REQUIRED_BUNDLES = [...requiredWebBundles(), 'dsh-desktop-im-bridge', 'dsh-desktop-whale-skins', 'dsh-desktop-github-market', 'dsh-desktop-api-meter', 'dsh-desktop-external-robots', 'dsh-desktop-workflow-canvas', 'dsh-desktop-ide-bridge']
 const REQUIRED_BUNDLE_SET = new Set(REQUIRED_BUNDLES)
-const OBSOLETE_DESKTOP_BUNDLE_SET = new Set(['@deepseek-ai/dsh-desktop-app'])
+/** Desktop-owned bundle names that no longer exist; pruned from persisted profiles on boot. */
+const OBSOLETE_DESKTOP_BUNDLE_SET = new Set([
+  '@deepseek-ai/dsh-desktop-app',
+  'dsh-desktop-external-tools',
+])
 const INSTALL_ANCHOR = unpackedAsarPath(fileURLToPath(new URL('../package.json', import.meta.url)))
 const DESKTOP_PATCH_PATH = fileURLToPath(new URL('../cordis.patch.yml', import.meta.url))
 const DIRECTORY_PICKER_ROW_ID = 'directory-picker'
@@ -93,6 +97,27 @@ export function parseDesktopPort(value: unknown): number {
 export interface DesktopStartupSettings {
   mode: DesktopShellMode
   port: number
+  /** Optional user-owned skill directory overrides (empty when unset). */
+  skills: DesktopSkillsDirs
+}
+
+/**
+ * User-configurable skill directory locations under `dsh-desktop.skills`.
+ * Both default to locations under the OS user profile (`$DSH_HOME/skills` and
+ * `~/.agents/skills`); setting one redirects the directory to the given path.
+ */
+export interface DesktopSkillsDirs {
+  /** DSH user-level skills root; defaults to `$DSH_HOME/skills`. When set, the launcher links that path to this directory. */
+  dshDir?: string
+  /** Shared Agent skills root; defaults to `~/.agents/skills`. When set, the launcher injects `DSH_AGENTS_HOME` so every skill consumer agrees on the location. */
+  agentsDir?: string
+}
+
+/** Parse an optional directory string; empty/missing values resolve to undefined. */
+function parseOptionalDir(value: unknown): string | undefined {
+  if (value === undefined) return undefined
+  if (typeof value !== 'string' || value.trim().length === 0) return undefined
+  return value.trim()
 }
 
 /**
@@ -106,15 +131,29 @@ export function desktopStartupSettingsFromSettings(document: unknown): DesktopSt
   }
   const section = (document as Record<string, unknown>)[DESKTOP_SETTINGS_NAMESPACE]
   if (section === undefined) {
-    return { mode: DEFAULT_DESKTOP_SHELL_MODE, port: DEFAULT_DESKTOP_PORT }
+    return { mode: DEFAULT_DESKTOP_SHELL_MODE, port: DEFAULT_DESKTOP_PORT, skills: {} }
   }
   if (typeof section !== 'object' || section === null || Array.isArray(section)) {
     throw new Error(`${BIN_NAME}: ${DESKTOP_SETTINGS_NAMESPACE} settings must be a map`)
   }
   const values = section as Record<string, unknown>
+  let skills: DesktopSkillsDirs = {}
+  if (values.skills !== undefined) {
+    if (typeof values.skills !== 'object' || values.skills === null || Array.isArray(values.skills)) {
+      throw new Error(`${BIN_NAME}: ${DESKTOP_SETTINGS_NAMESPACE}.skills must be a map`)
+    }
+    const skillsValues = values.skills as Record<string, unknown>
+    const dshDir = parseOptionalDir(skillsValues.dshDir)
+    const agentsDir = parseOptionalDir(skillsValues.agentsDir)
+    skills = {
+      ...(dshDir === undefined ? {} : { dshDir }),
+      ...(agentsDir === undefined ? {} : { agentsDir }),
+    }
+  }
   return {
     mode: parseDesktopShellMode(values.mode),
     port: parseDesktopPort(values.port),
+    skills,
   }
 }
 
@@ -135,7 +174,7 @@ export function readDesktopStartupSettings(config: SettingsFileConfig): DesktopS
     text = readFileSync(spec.filename, 'utf8')
   } catch (cause) {
     if ((cause as NodeJS.ErrnoException).code === 'ENOENT') {
-      return { mode: DEFAULT_DESKTOP_SHELL_MODE, port: DEFAULT_DESKTOP_PORT }
+      return { mode: DEFAULT_DESKTOP_SHELL_MODE, port: DEFAULT_DESKTOP_PORT, skills: {} }
     }
     throw cause
   }
@@ -184,6 +223,8 @@ export interface PreparedDesktopProfile {
   mode: DesktopShellMode
   /** Persisted loopback Web port applied to every startup consumer. */
   port: number
+  /** Optional user-owned skill directory overrides parsed from startup settings. */
+  skills: DesktopSkillsDirs
 }
 
 /** User patch entry skipped to keep a profile bootable. */
@@ -471,7 +512,7 @@ export function prepareDesktopProfile(
     dshHome: home,
     ...rowConfig(settings),
   } as SettingsFileConfig)
-  const { mode, port } = readDesktopStartupSettings(settingsConfig)
+  const { mode, port, skills } = readDesktopStartupSettings(settingsConfig)
   patches.push({
     id: 'settings',
     config: settingsConfig,
@@ -598,6 +639,7 @@ export function prepareDesktopProfile(
     skippedOptionalEntries,
     mode,
     port,
+    skills,
   }
 }
 

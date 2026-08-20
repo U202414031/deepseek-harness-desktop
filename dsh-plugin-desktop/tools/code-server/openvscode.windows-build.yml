@@ -1,0 +1,98 @@
+# Build openvscode-server for Windows (self-hosted release asset)
+#
+# gitpod-io/openvscode-server does not publish Windows builds for recent
+# versions, so this workflow produces one and uploads it as a GitHub Actions
+# artifact. After the first run, point the desktop fetch script at your repo:
+#
+#   $env:DSH_OPENVSCODE_REPO = "<your-org-or-user>/openvscode-server"
+#   yarn ide:fetch --version v5.7.0
+#
+# Drop this file at `.github/workflows/openvscode-windows-build.yml` in a repo
+# that contains the openvscode-server source (your fork of
+# gitpod-io/openvscode-server, or a small dedicated repo with the sources).
+
+name: openvscode-server-windows-build
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'openvscode-server tag to build (e.g. v5.7.0)'
+        required: true
+        default: 'v5.7.0'
+  push:
+    tags:
+      - 'openvscode-v*'
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Resolve tag
+        id: resolve
+        shell: bash
+        run: |
+          if [ -n "${{ github.event.inputs.tag }}" ]; then
+            echo "tag=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF_NAME#openvscode-}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout openvscode-server at the tag
+        uses: actions/checkout@v4
+        with:
+          repository: gitpod-io/openvscode-server
+          ref: ${{ steps.resolve.outputs.tag }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install --frozen-lockfile
+
+      - name: Build
+        run: npm run build
+
+      # The official release layout bundles a node binary at the release root;
+      # replicate it with the exact node the build just used so native modules
+      # match the runtime ABI.
+      - name: Bundle node binary
+        shell: bash
+        run: |
+          cp "$(node -p 'process.execPath')" ./node.exe
+
+      - name: Stage release tree
+        shell: bash
+        run: |
+          # Keep only what the server needs at runtime: the working tree minus
+          # dev-only folders. `npm run build` already produced out/.
+          rm -rf .git .github .vscode-test .build scripts dev tools src test
+
+      - name: Package zip
+        shell: bash
+        run: |
+          TAG=${{ steps.resolve.outputs.tag }}
+          VERSION="${TAG#v}"
+          ARCHIVE="openvscode-server-${VERSION}-windows-x64.zip"
+          powershell -NoProfile -Command \
+            "Compress-Archive -Path '*','.*' -DestinationPath \"\$env:RUNNER_TEMP\\$ARCHIVE\" -Force"
+          echo "archive=$ARCHIVE" >> "$GITHUB_OUTPUT"
+          echo "archive_path=$RUNNER_TEMP/$ARCHIVE" >> "$GITHUB_OUTPUT"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: openvscode-server-windows-x64
+          path: ${{ steps.package.outputs.archive_path }}
+          retention-days: 90
+
+      # Optional: publish as a GitHub Release asset on this repo so
+      # `yarn ide:fetch --version <tag>` resolves without downloading the
+      # artifact manually. Uncomment and set GITHUB_TOKEN permissions (contents: write).
+      # - name: Publish release asset
+      #   uses: softprops/action-gh-release@v2
+      #   with:
+      #     files: ${{ steps.package.outputs.archive_path }}
+      #     tag_name: openvscode-${{ steps.resolve.outputs.tag }}

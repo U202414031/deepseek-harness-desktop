@@ -122,7 +122,7 @@ describe('published package surface', () => {
       ],
     })
     expect(readFileSync(new URL('cordis.patch.yml', packageRoot), 'utf8')).toContain('name: dsh-plugin-desktop')
-    expect(readFileSync(new URL('cordis.patch.yml', packageRoot), 'utf8')).toContain('name: dsh-community-market')
+    expect(readFileSync(new URL('cordis.patch.yml', packageRoot), 'utf8')).not.toContain('dsh-community-market')
     expect(readFileSync(new URL('cordis.patch.yml', packageRoot), 'utf8')).toContain('name: dsh-plugin-desktop/terminal')
     expect(readFileSync(new URL('cordis.patch.yml', packageRoot), 'utf8')).toContain('name: dsh-plugin-desktop/pnpm')
     expect(readFileSync(new URL('cordis.patch.yml', packageRoot), 'utf8')).toContain('name: dsh-plugin-desktop/profiles')
@@ -439,7 +439,7 @@ describe('published package surface', () => {
     const packageDir = readFileSync(new URL('scripts/package-dir.mjs', packageRoot), 'utf8')
 
     expect(manifest.scripts?.build).toContain('node scripts/generate-mac-app-icon.mjs')
-    expect(manifest.scripts?.['package:dir']).toBe('yarn run build && node scripts/package-dir.mjs')
+    expect(manifest.scripts?.['package:dir']).toBe('yarn run build && yarn run ide:ensure && node scripts/package-dir.mjs')
     expect(packageDir).toContain("CSC_IDENTITY_AUTO_DISCOVERY: 'false'")
     expect(manifest.scripts?.['dist:mac']).toBe('node scripts/release-mac.ts')
     expect(manifest.scripts?.['dist:mac-smoke']).toBe('node scripts/package-mac.ts')

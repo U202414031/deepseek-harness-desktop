@@ -324,12 +324,37 @@ describe('desktop profile composition', {
     expect(desktopStartupSettingsFromSettings({ 'dsh-desktop': { mode: 'advanced', port: 43_189 } })).toEqual({
       mode: 'advanced',
       port: 43_189,
+      skills: {},
     })
     expect(desktopStartupSettingsFromSettings({ 'dsh-desktop': { mode: 'advanced' } })).toEqual({
       mode: 'advanced',
       port: 0,
+      skills: {},
     })
     expect(desktopShellModeFromSettings({ unrelated: { enabled: true } })).toBe('compatibility')
+  })
+
+  it('parses optional skill directory overrides and rejects malformed sections', () => {
+    expect(desktopStartupSettingsFromSettings({
+      'dsh-desktop': {
+        skills: {
+          dshDir: 'D:/MySkills/dsh',
+          agentsDir: 'D:/MySkills/agents',
+        },
+      },
+    })).toEqual({
+      mode: 'compatibility',
+      port: 0,
+      skills: { dshDir: 'D:/MySkills/dsh', agentsDir: 'D:/MySkills/agents' },
+    })
+    // Empty strings and missing values resolve to an empty skills object.
+    expect(desktopStartupSettingsFromSettings({
+      'dsh-desktop': { skills: { dshDir: '', agentsDir: '  ' } },
+    })).toEqual({ mode: 'compatibility', port: 0, skills: {} })
+    // Non-map skills sections are rejected.
+    expect(() => desktopStartupSettingsFromSettings({ 'dsh-desktop': { skills: 'D:/skills' } })).toThrow(
+      'skills must be a map',
+    )
   })
 
   it('rejects invalid settings roots, sections, modes, and YAML', () => {

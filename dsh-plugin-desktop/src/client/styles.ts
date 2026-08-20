@@ -363,7 +363,7 @@ a.dshDesktopApiLink.dshDesktopSecondaryButton { color: var(--dsh-desktop-fg); }
 .dshDesktopArtifactsReopen svg { width: 18px; height: 18px; display: block; }
 
 /* ---- Embedded IDE panel (VS Code linkage) ---- */
-.dshDesktopIde { display: flex; flex-direction: column; height: 100%; min-height: 0; color: var(--dsh-desktop-fg); }
+.dshDesktopIde { position: relative; display: flex; flex-direction: column; height: 100%; min-height: 0; color: var(--dsh-desktop-fg); }
 .dshDesktopIdeHeader { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .dshDesktopIdePanel { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
 .dshDesktopIdeBoot { flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 24px; text-align: center; }
@@ -380,6 +380,58 @@ a.dshDesktopApiLink.dshDesktopSecondaryButton { color: var(--dsh-desktop-fg); }
 .dshDesktopIdeDirPath { flex: 1 1 auto; min-width: 0; font-size: 11px; color: var(--dsh-desktop-fg-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dshDesktopIdeAddRow { display: flex; gap: 6px; }
 .dshDesktopIdeAddRow .dshDesktopSearchInput { flex: 1 1 auto; }
+/* ---- Embedded IDE (openvscode-server) frame ---- */
+.dshDesktopIdeToolbar { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--dsh-desktop-border); min-width: 0; }
+.dshDesktopIdeToolbarBtn { flex: 0 0 auto; padding: 4px 10px; font-size: 11px; }
+.dshDesktopIdeStatusChip { flex: 0 0 auto; font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--dsh-desktop-border); color: var(--dsh-desktop-fg-muted); }
+.dshDesktopIdeStatusChip[data-state="ready"] { color: #1f9d55; border-color: color-mix(in srgb, #1f9d55 45%, var(--dsh-desktop-border)); }
+.dshDesktopIdeToolbarHint { flex: 1 1 auto; min-width: 0; max-width: none; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dshDesktopIdeFrame { flex: 1 1 auto; min-height: 0; position: relative; background: var(--dsh-desktop-code-bg); }
+.dshDesktopIdeFrame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; background: #ffffff; }
+.dshDesktopIdeDirsOverlay { position: absolute; inset: 0; z-index: 5; background: var(--dsh-desktop-surface); display: flex; flex-direction: column; }
+.dshDesktopIdeDirsOverlayHeader { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--dsh-desktop-border); }
+.dshDesktopIdeDirsOverlayTitle { flex: 1 1 auto; font-size: 13px; font-weight: 600; }
+.dshDesktopIdeDirsOverlay .dshDesktopIdeDirs { flex: 1 1 auto; max-height: none; overflow: auto; border-top: 0; }
+.dshDesktopIdeDirsClose { position: static; }
+/* ---- Built-in lightweight IDE (file tree + CodeMirror) ---- */
+.dshDesktopIdeSplit { flex: 1 1 auto; min-height: 0; display: flex; }
+.dshDesktopIdeTree { flex: 0 0 auto; min-width: 120px; max-width: 420px; overflow: hidden; display: flex; flex-direction: column; }
+.dshDesktopIdeTreeHeader { flex: 0 0 auto; display: flex; align-items: center; gap: 2px; padding: 4px 6px; border-bottom: 1px solid var(--dsh-desktop-border); }
+.dshDesktopIdeTreeHeaderBtn { width: 26px; height: 26px; }
+.dshDesktopIdeTreeHeaderBtn svg { width: 15px; height: 15px; }
+.dshDesktopIdeTreeHeaderTitle { margin-left: 4px; font-size: 11px; font-weight: 600; color: var(--dsh-desktop-fg-muted); flex: 1 1 auto; }
+.dshDesktopIdeTreeHeaderBtn--collapse { width: 20px; height: 24px; }
+.dshDesktopIdeTreeReopen { flex: 0 0 auto; width: 20px; display: inline-flex; align-items: center; justify-content: center; border: 0; border-right: 1px solid var(--dsh-desktop-border); background: transparent; color: var(--dsh-desktop-fg-muted); cursor: pointer; -webkit-app-region: no-drag; }
+.dshDesktopIdeTreeReopen:hover { background: var(--dsh-desktop-surface-2); color: var(--dsh-desktop-fg); }
+.dshDesktopIdeTreeReopen svg { width: 15px; height: 15px; }
+.dshDesktopIdeTreeBody { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 6px; display: flex; flex-direction: column; gap: 2px; }
+.dshDesktopIdeSplitHandle { flex: 0 0 5px; cursor: col-resize; background: transparent; touch-action: none; -webkit-app-region: no-drag; }
+.dshDesktopIdeSplitHandle:hover { background: var(--dsh-desktop-accent); opacity: 0.35; }
+.dshDesktopIdeSplitHandle:active { background: var(--dsh-desktop-accent); opacity: 0.6; }
+.dshDesktopIdeTreeRoot + .dshDesktopIdeTreeRoot { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--dsh-desktop-border); }
+.dshDesktopIdeTreeItem { display: flex; align-items: center; gap: 5px; width: 100%; padding: 3px 6px; border: 0; border-radius: 6px; background: transparent; color: var(--dsh-desktop-fg); font-size: 12px; text-align: left; cursor: pointer; -webkit-app-region: no-drag; }
+.dshDesktopIdeTreeItem:hover { background: var(--dsh-desktop-surface-2); }
+.dshDesktopIdeTreeItem[data-selected] { background: var(--dsh-desktop-accent); color: var(--dsh-desktop-accent-fg); }
+.dshDesktopIdeTreeItem[data-depth] { padding-left: calc(9px + var(--dsh-tree-depth, 0) * 14px); }
+.dshDesktopIdeTreeItem[data-depth="0"] { --dsh-tree-depth: 0; }
+.dshDesktopIdeTreeItem[data-depth="1"] { --dsh-tree-depth: 1; }
+.dshDesktopIdeTreeItem[data-depth="2"] { --dsh-tree-depth: 2; }
+.dshDesktopIdeTreeItem[data-depth="3"] { --dsh-tree-depth: 3; }
+.dshDesktopIdeTreeItem[data-depth="4"] { --dsh-tree-depth: 4; }
+.dshDesktopIdeTreeItem[data-depth="5"] { --dsh-tree-depth: 5; }
+.dshDesktopIdeTreeCaret { flex: 0 0 12px; font-size: 10px; color: var(--dsh-desktop-fg-muted); }
+.dshDesktopIdeTreeItem[data-selected] .dshDesktopIdeTreeCaret { color: inherit; }
+.dshDesktopIdeTreeIcon { flex: 0 0 auto; font-size: 12px; }
+.dshDesktopIdeTreeName { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dshDesktopIdeTreeChildren { display: flex; flex-direction: column; }
+.dshDesktopIdeEditorArea { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.dshDesktopIdeEditorHeader { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-bottom: 1px solid var(--dsh-desktop-border); min-width: 0; }
+.dshDesktopIdeEditorFile { flex: 1 1 auto; min-width: 0; font-size: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--dsh-desktop-fg-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dshDesktopIdeDirtyDot { flex: 0 0 auto; color: #d97706; font-size: 10px; }
+.dshDesktopIdeEditorActions { flex: 0 0 auto; display: flex; gap: 6px; }
+.dshDesktopIdeEditorBody { flex: 1 1 auto; min-height: 0; overflow: hidden; background: var(--dsh-desktop-code-bg); }
+.dshDesktopIdeEditorBody .cm-editor { height: 100%; font-size: 13px; }
+.dshDesktopIdeEditorStatus { padding: 4px 10px; border-top: 1px solid var(--dsh-desktop-border); max-width: none; }
 .dshDesktopEmptyState { color: var(--dsh-desktop-fg-muted); font-size: 13px; padding: 8px; }
 .dshDesktopCodeList, .dshDesktopArtifactList { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .dshDesktopCodeCard, .dshDesktopArtifactCard { border: 1px solid var(--dsh-desktop-border); border-radius: 10px; overflow: hidden; background: var(--dsh-desktop-surface); }

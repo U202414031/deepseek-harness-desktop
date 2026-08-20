@@ -21,7 +21,7 @@ export interface DesktopLayoutSnapshot {
 }
 
 /** Left-surface selection rendered inside the desktop-owned sidebar column. */
-export type DesktopLeftPanel = 'chat' | 'marketplace' | 'skins' | 'api' | 'tools' | 'workflow'
+export type DesktopLeftPanel = 'chat' | 'marketplace' | 'skins' | 'api' | 'robots' | 'workflow'
 
 /** Column geometry after preserving the center surface. */
 export interface DesktopColumns {
@@ -53,9 +53,9 @@ export const ARTIFACTS_MIN = 300
 export const ARTIFACTS_MAX = 560
 /** Reserved width of the always-present right-edge control rail, mirroring the sidebar rail. */
 export const ARTIFACTS_RAIL = 56
-export const IDE_DEFAULT = 420
-export const IDE_MIN = 320
-export const IDE_MAX = 720
+export const IDE_DEFAULT = 560
+export const IDE_MIN = 440
+export const IDE_MAX = 760
 /** Reserved width of the always-present right-edge control rail for the IDE panel. */
 export const IDE_RAIL = 56
 export const CENTER_MIN = 640

@@ -1,0 +1,6 @@
+# dsh-desktop-whale-skins bundle: whale-skin (换肤) host routes + web client surface.
+# Host entry loads `/desktop/skins/*` asset routes; the client half (dsh.client)
+# is discovered by client-modules from this bundle's package.json.
+- insert:
+    - id: desktop-skins
+      name: dsh-desktop-whale-skins

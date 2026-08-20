@@ -11,7 +11,14 @@
   "workspaces": [
     "dsh-plugin-desktop",
     "dsh-community-fabric",
-    "dsh-community-market"
+    "dsh-community-market",
+    "dsh-desktop-im-bridge",
+    "dsh-desktop-whale-skins",
+    "dsh-desktop-github-market",
+    "dsh-desktop-api-meter",
+    "dsh-desktop-external-robots",
+    "dsh-desktop-workflow-canvas",
+    "dsh-desktop-ide-bridge"
   ],
   "resolutions": {
     "app-builder-lib@npm:26.15.7": "patch:app-builder-lib@npm%3A26.15.7#./patches/app-builder-lib@26.15.7.patch",

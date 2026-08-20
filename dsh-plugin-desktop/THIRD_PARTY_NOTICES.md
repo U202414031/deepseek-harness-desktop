@@ -531,3 +531,24 @@ the package names, versions, and licenses for transparency.
 | zustand | 4.4.7 | MIT |
 | zwitch | 2.0.4 | MIT |
 > Notice-required licenses in use: LGPL-3.0-or-later. Their license texts ship inside node_modules; see the package LICENSE files for the full terms.
+
+## Embedded IDE runtime
+
+The optional embedded IDE (right-panel IDE surface, advanced mode) bundles the
+openvscode-server release fetched by `scripts/fetch-openvscode-server.mjs` into
+`resources/code-server/openvscode-server` at packaging time. When bundled, the
+following third-party software is redistributed:
+
+| Package | Version | License |
+| --- | --- | --- |
+| [openvscode-server](https://github.com/gitpod-io/openvscode-server) | per `.version.json` at fetch time | MIT (upstream VS Code OSS) |
+
+- openvscode-server is based on Microsoft's VS Code and is distributed under the
+  MIT License. Its own `ThirdPartyNotices.txt` ships inside the runtime folder
+  (`resources/code-server/openvscode-server/ThirdPartyNotices.txt`) and lists
+  the bundled third-party components.
+- The selection-bridge extension (`ide-extension/`, distributed inside the
+  runtime's extensions folder as `dsh-ide-bridge`) is owned by this project and
+  distributed under the MIT License.
+- The runtime is only present when the fetch script has been run; releases that
+  skip the fetch ship without it and fall back to the native VS Code linkage.

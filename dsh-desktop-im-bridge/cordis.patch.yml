@@ -1,0 +1,7 @@
+# dsh-desktop-im-bridge bundle: bridges phone-side QQ / 飞书 / 微信 to the local
+# DeepSeek Harness agent so a user can query status and dispatch tasks from their
+# phone. Host-only (registers loopback routes); the desktop client reaches it via
+# the same-origin `/desktop/im-gateway/*` endpoints.
+- insert:
+    - id: desktop-im-gateway
+      name: dsh-desktop-im-bridge

@@ -7,17 +7,8 @@ import { DesktopLayoutState } from './layout-state.ts'
 import { provideDesktopLayout } from './layout-service.ts'
 import { installAdvancedStyles } from './styles.ts'
 import { DesktopThemePresenter } from './theme-presenter.ts'
-import { MarketplacePanel } from './features/marketplace/MarketplacePanel.tsx'
-import { SkinsPanel } from './features/skins/SkinsPanel.tsx'
-import { ApiSettingsPanel } from './features/api/ApiSettingsPanel.tsx'
-import { ToolsPanel } from './features/tools/ToolsPanel.tsx'
-import { WorkflowPanel } from './features/workflow/WorkflowPanel.tsx'
-import { ModelMonitor } from './features/api/ModelMonitor.tsx'
-import { TurnUsageFooter } from './features/api/turn-usage-footer.tsx'
 import { ArtifactsPanel } from './features/artifacts/ArtifactsPanel.tsx'
-import { IdePanel } from './features/ide/IdePanel.tsx'
-import { applySkin, getSkin } from './features/skins/skin-service.ts'
-import { startWhaleAmbient } from './features/skins/whale-ambient.ts'
+import { DataDirectorySection } from './features/data/DataDirectorySection.tsx'
 
 /**
  * Provide the advanced layout service and own the desktop root slot.
@@ -57,14 +48,7 @@ export function applyAdvancedShell(ctx: ClientContext, environment: DesktopClien
   }, 'desktop: theme presenter')
 
   // Restore the user's previously selected skin on every advanced-shell boot.
-  ctx.effect(() => {
-    applySkin(getSkin())
-    return () => {}
-  }, 'desktop: skin restore')
-
-  // Whale-girl ambient particle layer: active only for skins that declare an
-  // `ambient` block; follows the cursor so particles converge where you point.
-  ctx.effect(() => startWhaleAmbient(), 'desktop: whale ambient')
+  // (Now owned by the `dsh-desktop-whale-skins` bundle.)
 
   ctx.effect(() => ctx.slots.register({
     name: 'root',
@@ -75,8 +59,9 @@ export function applyAdvancedShell(ctx: ClientContext, environment: DesktopClien
       'sidebar.marketplace': { kind: 'single', scope: 'root' },
       'sidebar.skins': { kind: 'single', scope: 'root' },
       'sidebar.api': { kind: 'single', scope: 'root' },
-      'sidebar.tools': { kind: 'single', scope: 'root' },
+      'sidebar.robots': { kind: 'single', scope: 'root' },
       'sidebar.workflow': { kind: 'single', scope: 'root' },
+      'workflow.canvas': { kind: 'single', scope: 'root' },
       'desktop.model-monitor': { kind: 'single', scope: 'session-maybe' },
       'artifacts': { kind: 'single', scope: 'session' },
       'ide': { kind: 'single', scope: 'root' },
@@ -87,23 +72,24 @@ export function applyAdvancedShell(ctx: ClientContext, environment: DesktopClien
 
   // Desktop-owned surfaces contributed into the advanced root slot (after the
   // root declaration so the child seats already exist).
-  ctx.effect(() => ctx.slots.register({ name: 'sidebar.marketplace' }, MarketplacePanel), 'desktop: marketplace surface')
-  ctx.effect(() => ctx.slots.register({ name: 'sidebar.skins' }, SkinsPanel), 'desktop: skins surface')
-  ctx.effect(() => ctx.slots.register({ name: 'sidebar.api' }, ApiSettingsPanel), 'desktop: api settings surface')
-  ctx.effect(() => ctx.slots.register({ name: 'sidebar.tools' }, ToolsPanel), 'desktop: external tools surface')
-  ctx.effect(() => ctx.slots.register({ name: 'sidebar.workflow' }, WorkflowPanel), 'desktop: workflow surface')
-  ctx.effect(() => ctx.slots.register({ name: 'desktop.model-monitor' }, ModelMonitor), 'desktop: model monitor')
   ctx.effect(() => ctx.slots.register({ name: 'artifacts' }, ArtifactsPanel), 'desktop: artifacts surface')
-  ctx.effect(() => ctx.slots.register({ name: 'ide' }, IdePanel), 'desktop: ide surface')
 
-  // Inline per-reply usage footer: contributes into the upstream turn-tail
-  // chain slot (declared by dsh-client-ui-conversation), so each finished
-  // reply shows its token usage + estimated cost right below the message.
+  // Data-directory relocation page inside the official Settings panel: shows
+  // where every desktop file lives and lets the user move the data root. The
+  // settings section slot is declared lazily by the upstream settings shell
+  // (`dsh-client-ui-settings-general`), so the section must be contributed
+  // through `slots.inject` like every other settings feature; a direct
+  // `slots.register` runs before the slot exists and fails to load.
   ctx.effect(
-    () => ctx.slots.inject('conversation.chat.turnTail', () => ctx.slots.register({
-      name: 'conversation.chat.turnTail',
-      select: (owner) => ({ turnNumber: owner.turn.turn, seq: owner.seq }),
-    }, TurnUsageFooter)),
-    'desktop: turn usage footer',
+    () => ctx.slots.inject('settings.section', () => ctx.slots.register({
+      name: 'settings.section',
+      id: 'desktop-data',
+      order: 20,
+      label: () => '数据目录',
+    }, DataDirectorySection)),
+    'desktop: data directory settings section',
   )
+
+  // Chat-input trigger + workspace binding for the embedded IDE are now owned by
+  // the `dsh-desktop-ide-bridge` bundle.
 }

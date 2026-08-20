@@ -176,6 +176,8 @@ DSH Desktop 将 UTF-8 日志写入 Electron 用户数据目录：Windows 位于 
 
 `yarn package:dir` 为当前宿主平台创建未封装目录。如果应用归档缺少 desktop 更新与终端模块、DSH CLI bootstrap、内置 pnpm 入口或物理 deployment package，packaged-runtime gate 会拒绝该产物。Electron Builder 会把根 manifest、desktop runtime 与完整依赖树输出到 `app.asar.unpacked`；Host profile boot 与 CLI bootstrap 都会使用这棵物理树，因此 DSH profile fallback 的符号链接不会指向虚拟 ASAR 目录。`build/app-icon.png` 保持为未经修改的 iOS Default 源图，并继续作为 Windows 与 Linux 应用图标。构建过程会运行 `scripts/generate-mac-app-icon.mjs`，把该图缩放为 824 × 824 像素并居中放入透明的 1024 × 1024 画布；macOS 打包与运行中的 Dock 都使用生成的 `build/app-icon-mac.png`。`build/tray-icon.svg` 是品牌蓝托盘源文件：构建过程会派生由 macOS 系统自动着色的模板图，以及固定品牌蓝的 Windows 与 Linux 托盘图。
 
+高级模式右栏的 IDE 面板以内置轻量编辑器为主：项目文件树（仅放行 profile 目录与「目录」中允许的路径，路径经 realpath 规范化与白名单校验）+ CodeMirror 6 编辑器，查看/编辑/保存全部在应用内完成，框选代码可「解释/修改」复用同一 ask 桥接；无运行时依赖、离线可用、打包即用。外部 VS Code 联动保留为可选的「外部 VS Code」按钮（写入 `.code-workspace` 并以脱离进程方式启动）。内嵌 openvscode-server 的宿主代码与打包接缝仍在（`resources/code-server/openvscode-server`）：Linux/macOS 可用 `yarn ide:fetch` 直接获取官方预编译包，Windows 无官方包，可用 `--archive`/`--from-dir` 离线装入或自行构建（详见 `tools/code-server/README.md`）。
+
 ### WSL Linux 无界面检查
 
 在 Windows 工作站上，WSL2 适合覆盖 Linux 无界面的 build、typecheck 和 unit test。请使用 WSL 内部安装的 Linux Node.js，不要使用 WSL 通过挂载的 Windows `PATH` 继承到的 Windows Node.js 或 Corepack shim。使用 `nvm` 时，每个 shell 先执行 `source ~/.nvm/nvm.sh`，再运行 Corepack 命令：

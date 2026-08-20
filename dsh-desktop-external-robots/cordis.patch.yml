@@ -1,0 +1,6 @@
+# dsh-desktop-external-robots bundle: external robots panel. Renderer-only — the
+# host row is a placeholder so the Loader can resolve the insert; the web client
+# half comes from `exports["./client"]`.
+- insert:
+    - id: desktop-external-robots
+      name: dsh-desktop-external-robots

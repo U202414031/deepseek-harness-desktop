@@ -108,6 +108,20 @@ describe('desktop Host pnpm runtime', () => {
     expect(environment).toEqual(original)
   })
 
+  it('injects npm_config_store_dir into the pnpm shim when a storeDir is provided', () => {
+    const stateDir = join(temporaryDirectory(), 'runtime')
+    const storeDir = join(temporaryDirectory(), 'data-root', 'pnpm-store')
+    const environment: NodeJS.ProcessEnv = { PATH: '/usr/bin:/bin' }
+
+    const installation = installDesktopPnpmRuntime({
+      ...options(stateDir, 'linux', environment),
+      storeDir,
+    })
+    const pnpm = readFileSync(installation.pnpmShimPath, 'utf8')
+    expect(pnpm).toContain(`npm_config_store_dir='${storeDir}'`)
+    installation.dispose()
+  })
+
   it('keeps recovered login-shell PATH beneath the Desktop runtime PATH', () => {
     const stateDir = join(temporaryDirectory(), 'runtime')
     const recoveredPath = '/opt/homebrew/bin:/opt/homebrew/sbin:/usr/bin:/bin'
@@ -238,6 +252,20 @@ describe('desktop Host pnpm runtime', () => {
     installation.dispose()
     installation.dispose()
     expect(environment).toEqual(original)
+  })
+
+  it('injects npm_config_store_dir into the Windows pnpm shim when provided', () => {
+    const stateDir = join(temporaryDirectory(), 'runtime')
+    const storeDir = join(temporaryDirectory(), 'data-root', 'pnpm-store')
+    const environment: NodeJS.ProcessEnv = { PATH: 'C:\\Windows' }
+
+    const installation = installDesktopPnpmRuntime({
+      ...options(stateDir, 'win32', environment),
+      storeDir,
+    })
+    const pnpm = readFileSync(installation.pnpmShimPath, 'utf8')
+    expect(pnpm).toContain(`set "npm_config_store_dir=${storeDir}"`)
+    installation.dispose()
   })
 
   it('removes only its own PATH component when another owner changes PATH later', () => {
