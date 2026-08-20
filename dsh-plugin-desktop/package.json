@@ -302,6 +302,9 @@
         "to": "code-server/ide-extension"
       }
     ],
+    "toolsets": {
+      "nsis": "1.2.1"
+    },
     "files": [
       "build/app-icon.png",
       "build/app-icon-mac.png",
